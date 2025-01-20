@@ -1,0 +1,191 @@
+{% extends 'home.html' %}
+{% block title %}Teams{% endblock %}
+{% block content %}
+    <!-- Breadcrumb Navigation -->
+    <div class="d-flex justify-content-between align-items-center mb-2 ">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a class="text-decoration-none" href="{% url 'home' %}">Home</a></li>
+                <li class="breadcrumb-item"><a class="text-decoration-none" href="{% url 'team_list' %}">Teams</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Create Team</li>
+            </ol>
+        </nav>
+    </div>
+    
+    <div class="container ">
+        <div class="col-md-8 d-flex mb-2">
+            <div class="col-md-2">
+                 <a  href="{% url 'team_list' %}" class="btn btn-secondary btn-sm mb-2">
+                        <i class="bi bi-arrow-left-circle"></i> Back to teams
+                    </a>
+            </div>
+            <div class="col-md-10">
+                {% if messages %}
+                    <!-- Iterate over messages -->
+                    {% for message in messages %}
+                        <!-- Check if message tag is 'danger' (error message) -->
+                        {% if message.tags == 'danger' %}
+                            <!-- Modal for Error Message -->
+                            <div class="modal fade" id="errorModal" tabindex="-1" aria-labelledby="errorModalLabel" aria-hidden="true">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="errorModalLabel">Error</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            {{ message }}
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% else %}
+                            <!-- Normal Alerts for Non-Error Messages -->
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                {% endif %}
+            </div>
+        </div>
+        <div class="row g-4">
+
+            <!-- Team Creation Form -->
+            <div class="col-lg-8">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Team Details</h5>
+                    </div>
+                    <div class="card-body">
+                        <form method="POST">
+                            {% csrf_token %}
+                            <!-- Team Name Validation (starts with a letter) -->
+                            <div class="mb-4">
+                                <label for="name" class="form-label">Team Name</label>
+                                <input type="text" class="form-control shadow-sm" id="name" name="name" placeholder="Enter team name" required 
+                                    minlength="4" maxlength="50" 
+                                    pattern="^[A-Za-z][A-Za-z0-9 ]{3,49}$" 
+                                    title="Team name must start with a letter and be between 4 and 50 characters long. Only letters, numbers, and spaces are allowed after the first letter.">
+                                <div class="invalid-feedback">Team name must start with a letter and be between 4 and 50 characters long. Only letters, numbers, and spaces are allowed after the first letter.</div>
+                            </div>
+
+                            <!-- Team Leader Validation -->
+                            <div class="mb-4">
+                                <label for="team_leader" class="form-label">Team Leader</label>
+                                <select class="form-select shadow-sm" id="team_leader" name="team_leader" required>
+                                    <option value="" selected>-- Select Leader --</option>
+                                    {% for user in users %}
+                                        <option value="{{ user.id }}">{{ user.username }}</option>
+                                    {% endfor %}
+                                </select>
+                                <div class="invalid-feedback">Please select a team leader.</div>
+                            </div>
+
+                            <!-- Team Members Validation -->
+                            <div class="mb-4">
+                                <label for="team_members" class="form-label">Team Members</label>
+                                <select class="form-select shadow-sm" id="team_members" name="team_members" multiple required>
+                                    <option value="" disabled>-- Select Members --</option>
+                                    {% for user in users %}
+                                        <option value="{{ user.id }}">{{ user.username }}</option>
+                                    {% endfor %}
+                                </select>
+                                <small class="form-text text-muted">Hold Ctrl (Windows) or Command (Mac) to select multiple members.</small>
+                                <div class="invalid-feedback">Please select at least one team member.</div>
+                            </div>
+
+                            <!-- Actions -->
+                            <div class="d-flex justify-content-end gap-3">
+                                <a href="{% url 'team_list' %}" class="btn btn-outline-secondary">
+                                    <i class="bi bi-arrow-left"></i> Cancel
+                                </a>
+                                <button type="submit" class="btn btn-success">
+                                    <i class="bi bi-check-circle"></i> Create Team
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Overview Section -->
+            <div class="col-lg-4">
+                <div class="card h-100 shadow-sm">
+                    <div>
+                        <!-- Search Input -->
+                        <form method="GET" action="">
+                            <div class="input-group">
+                                <input type="text" class="form-control shadow-sm" id="userSearch" name="search" placeholder="Search by username" value="{{ search_query }}">
+                                <button class="btn btn-primary" id="searchButton" type="submit">Search</button>
+                            </div>
+                        </form>
+                    </div>
+                    <!-- User List -->
+                    <ul class="list-group list-group-flush" id="userList">
+                        {% for user in page_obj %}
+                            <li class="list-group-item d-flex flex-column user-item">
+                                <strong class="username">{{ user.username }}</strong>
+                                {% if user.teams_led %}
+                                    <p>Leads: 
+                                        <em>
+                                            {% for team in user.teams_led %}
+                                                {{ team.name }}{% if not forloop.last %}, {% endif %}
+                                            {% endfor %}
+                                        </em>
+                                    </p>
+                                {% endif %}
+                                <p>Member of {{ user.team_count }} team(s)</p>
+                            </li>
+                        {% empty %}
+                            <li class="list-group-item text-muted user-item">No users found.</li>
+                        {% endfor %}
+                    </ul>
+
+                    <!-- Pagination Controls -->
+                    {% if not search_query %}
+                        <nav aria-label="User pagination">
+                            <ul class="pagination justify-content-center mt-3">
+                                {% if page_obj.has_previous %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page=1&search={{ search_query }}" aria-label="First">
+                                            <span aria-hidden="true">&laquo;&laquo;</span>
+                                        </a>
+                                    </li>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}&search={{ search_query }}" aria-label="Previous">
+                                            <span aria-hidden="true">&laquo;</span>
+                                        </a>
+                                    </li>
+                                {% endif %}
+                                {% for num in page_obj.paginator.page_range %}
+                                    <li class="page-item {% if num == page_obj.number %}active{% endif %}">
+                                        <a class="page-link" href="?page={{ num }}&search={{ search_query }}">{{ num }}</a>
+                                    </li>
+                                {% endfor %}
+                                {% if page_obj.has_next %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ page_obj.next_page_number }}&search={{ search_query }}" aria-label="Next">
+                                            <span aria-hidden="true">&raquo;</span>
+                                        </a>
+                                    </li>
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}&search={{ search_query }}" aria-label="Last">
+                                            <span aria-hidden="true">&raquo;&raquo;</span>
+                                        </a>
+                                    </li>
+                                {% endif %}
+                            </ul>
+                        </nav>
+                    {% endif %}
+                </div>
+            </div>
+            
+        </div>
+    </div>
+
+{% endblock %}

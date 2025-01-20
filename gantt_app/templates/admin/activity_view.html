@@ -1,0 +1,122 @@
+{% extends 'home.html' %}
+{% block content %}
+    <!-- Breadcrumb Navigation -->
+    <div class=" bg-light">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a class="text-decoration-none" href="{% url 'home' %}">Home</a></li>
+                <li class="breadcrumb-item active">Activities</li>
+            </ol>
+        </nav>
+    </div>
+<div class="container my-2">
+    <!-- Filter Section -->
+    <form method="GET" class="row g-3 align-items-center mb-4">
+        <!-- Search Bar -->
+        <div class="col-md-3">
+            <input 
+                type="text" 
+                class="form-control" 
+                name="search" 
+                placeholder="Search activities..." 
+                value="{{ search_query }}">
+        </div>
+
+        <!-- User Filter -->
+        <div class="col-md-2">
+            <select name="user" class="form-select">
+                <option value="">All Users</option>
+                {% for user in users %}
+                <option value="{{ user.id }}" {% if user.id|stringformat:"s" == user_filter %}selected{% endif %}>
+                    {{ user.username }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Project Filter -->
+        <div class="col-md-2">
+            <select name="project" class="form-select">
+                <option value="">All Projects</option>
+                {% for project in projects %}
+                <option value="{{ project.id }}" {% if project.id|stringformat:"s" == project_filter %}selected{% endif %}>
+                    {{ project.name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Task Filter -->
+        <div class="col-md-2">
+            <select name="task" class="form-select">
+                <option value="">All Tasks</option>
+                {% for task in tasks %}
+                <option value="{{ task.id }}" {% if task.id|stringformat:"s" == task_filter %}selected{% endif %}>
+                    {{ task.name }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Activity Type Filter -->
+        <div class="col-md-2">
+            <select name="activity_type" class="form-select">
+                <option value="">All Activity Types</option>
+                {% for choice, display in activity_choices.items %}
+                <option value="{{ choice }}" {% if choice == activity_type_filter %}selected{% endif %}>
+                    {{ display }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Submit Button -->
+        <div class="col-md-1">
+            <button type="submit" class="btn btn-primary w-100">Search</button>
+        </div>
+    </form>
+
+    <!-- Activities Table -->
+    <div class="table-responsive">
+        <table id="activityTable" class="table table-striped">
+            <thead class="table-light">
+                <tr>
+                    <th>User</th>
+                    <th>Object Name</th>
+                    <th>Activity Type</th>
+                    <th>Description</th>
+                    <th>Timestamp</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for activity in activities %}
+                <tr>
+                    <td>{{ activity.user.username }}</td>
+                    <td>{{ activity.object_name }}</td>
+                    <td>{{ activity.get_activity_type_display }}</td>
+                    <td>{{ activity.activity_description }}</td>
+                    <td>{{ activity.timestamp|date:"M d, Y H:i" }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center">No activities found matching the filters.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+
+<script>
+    $(document).ready(function() {
+        $('#activityTable').DataTable({
+            "paging": true,
+            "searching": false,  // Disable built-in search (using our filters instead)
+            "ordering": true,
+            "info": true,
+            "pageLength": 10
+        });
+    });
+</script>
+{% endblock %}

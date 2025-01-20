@@ -1,0 +1,152 @@
+{% extends 'home.html' %}
+{% block title %}Projects{% endblock %}
+{% block content %}
+
+<!-- Breadcrumb Navigation -->
+<div class="breadcrumb-wrapper  bg-light">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb bg-light rounded px-3">
+            <li class="breadcrumb-item"><a href="{% url 'home' %}" class="text-decoration-none">Home</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'project_list' %}" class="text-decoration-none"> Projects</a></li>
+            <li class="breadcrumb-item active">Project Detail</li>
+        </ol>
+    </nav>
+</div>
+  {% if messages %}
+    <div class="container mt-4">
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    </div>
+{% endif %}
+<div class="container my-2">
+    <!-- Project Overview -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-lg-between">
+                <div class="mb-4 mb-lg-0">
+                    <h1 class="display-5">{{ project.name }}</h1>
+                    <p class="text-muted">{{ project.description }}</p>
+                    <p><strong>Time Scope:</strong> {{ project.start_date }} - {{ project.end_date|default:"No end date" }}</p>
+                    <p><strong>Status:</strong> 
+                        {% if project.status == 'completed' %}
+                            <span class="badge bg-success">Completed</span>
+                        {% else %}
+                            <span class="badge bg-info">Ongoing</span>
+                        {% endif %}
+                    </p>
+                </div>
+                <div>
+                    <h6>Progress</h6>
+                    <div class="progress" style="width: 200px;">
+                        <div class="progress-bar" role="progressbar" style="width: {{ project.progress }}%;" aria-valuenow="{{ project.progress }}" aria-valuemin="0" aria-valuemax="100">
+                            {{ project.progress }}%
+                        </div>
+                        <div>
+                    </div>
+                </div>
+                <a href="{% url 'project_edit' project.id %}" class="btn btn-sm btn-warning mx-1">
+                            <i class="bi bi-pencil"></i> Edit
+                    </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabs for Sections -->
+    <ul class="nav nav-tabs" id="projectTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="tasks-tab" data-bs-toggle="tab" data-bs-target="#tasks" type="button" role="tab" aria-controls="tasks" aria-selected="true">Tasks</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="team-tab" data-bs-toggle="tab" data-bs-target="#team" type="button" role="tab" aria-controls="team" aria-selected="false">Team</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="activity-tab" data-bs-toggle="tab" data-bs-target="#activity" type="button" role="tab" aria-controls="activity" aria-selected="false">Activity Log</button>
+        </li>
+    </ul>
+    <div class="tab-content" id="projectTabsContent">
+        <!-- Tasks Section -->
+        <div class="tab-pane fade show active" id="tasks" role="tabpanel" aria-labelledby="tasks-tab">
+            <div class="card shadow-sm mt-4">
+                <div class="card-body">
+                    <h4>Tasks</h4>
+                    {% if project.tasks.all %}
+                    <ul class="list-group list-group-flush">
+                        {% for task in project.tasks.all %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                               <span class="mb-1">{{ task.name }}</span>
+                                <span class="mb-0 text-muted">
+                                    Assigned to: 
+                                    {% if task.assigned_to %}
+                                        {% for member in task.assigned_to.all %}
+                                            {{ member.username }}{% if not forloop.last %}, {% endif %}
+                                        {% endfor %}
+                                    {% else %}
+                                        Not Assigned
+                                    {% endif %}
+                                </span>
+                            </div>
+                            <span class="badge {% if task.is_completed %}bg-success{% else %}bg-warning{% endif %}">
+                                {% if task.is_completed %}Completed{% else %}Pending{% endif %}
+                            </span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p class="text-center">No tasks found for this project.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Team Section -->
+        <div class="tab-pane fade" id="team" role="tabpanel" aria-labelledby="team-tab">
+            <div class="card shadow-sm mt-4">
+                <div class="card-body">
+                    <h4>Team Information</h4>
+                    {% if project.assigned_team %}
+                        <p><strong>Team Name:</strong> {{ project.assigned_team.name }}</p>
+                        <p><strong>Description:</strong> {{ project.assigned_team.description|default:"No description provided" }}</p>
+                        <p><strong>Team Leader:</strong> {{ project.assigned_team.leader.username }}</p>
+                        <h6>Members:</h6>
+                        <ul class="list-inline">
+                            {% for member in project.assigned_team.members.all %}
+                                <li class="list-inline-item badge bg-secondary text-white">{{ member.username }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <div class="alert alert-warning">No team is assigned to this project.</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Activity Log Section -->
+        <div class="tab-pane fade" id="activity" role="tabpanel" aria-labelledby="activity-tab">
+            <div class="card shadow-sm mt-4">
+                <div class="card-body">
+                    <h4>Activity Log</h4>
+                    {% if activity_logs %}
+                    <ul class="list-group list-group-flush">
+                        {% for log in activity_logs %}
+                        <li class="list-group-item">
+                            <small class="text-muted"> {{ log.user.username }} on {{ log.timestamp }}</small>
+                            did {{ log.activity_description }}<br>
+                            
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p class="text-center">No activity logs found for this project.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Chat</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        #chatbox {
+            width: 100%;
+            height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ccc;
+            margin-bottom: 10px;
+        }
+        #message {
+            width: 80%;
+            padding: 10px;
+        }
+        #send {
+            padding: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>WebSocket Chat Room</h1>
+    
+    <!-- Chat box where messages are displayed -->
+    <div id="chatbox"></div>
+    
+    <!-- Input field for sending messages -->
+    <input type="text" id="message" placeholder="Type a message..." />
+    <button id="send">Send</button>
+
+    <script>
+        // Create a new WebSocket connection
+        const roomName = "EBirr";  // Use your room name or dynamic room name
+        const chatSocket = new WebSocket(
+            `ws://${window.location.host}/ws/chat/${roomName}/`
+        );
+
+        // Display WebSocket status in console
+        chatSocket.onopen = function(e) {
+            console.log("WebSocket Connected: ", e);
+        };
+
+        // Handle incoming WebSocket messages
+        chatSocket.onmessage = function(e) {
+            const data = JSON.parse(e.data);
+            const chatbox = document.getElementById("chatbox");
+            chatbox.innerHTML += `<p>${data.message}</p>`;
+            chatbox.scrollTop = chatbox.scrollHeight;  // Scroll to bottom
+        };
+
+        // Handle WebSocket close event
+        chatSocket.onclose = function(e) {
+            console.log("WebSocket Closed: ", e);
+        };
+
+        // Handle WebSocket error event
+        chatSocket.onerror = function(e) {
+            console.error("WebSocket Error: ", e);
+        };
+
+        // Send message to WebSocket server when 'Send' button is clicked
+        document.getElementById("send").onclick = function() {
+            const messageInput = document.getElementById("message");
+            const message = messageInput.value;
+            if (message) {
+                chatSocket.send(JSON.stringify({
+                    'message': message
+                }));
+                messageInput.value = '';  // Clear input field
+            }
+        };
+
+        // Handle pressing Enter key to send a message
+        document.getElementById("chat-message-submit").addEventListener("keydown", function(e) {
+            if (e.key === "Enter") {
+                document.getElementById("send").click();
+            }
+        });
+    </script>
+</body>
+</html>

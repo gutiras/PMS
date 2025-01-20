@@ -1,0 +1,17 @@
+
+{% extends 'home.html' %}
+
+{% block title %}Teams{% endblock %}
+{% block content %}
+<h1>Are you sure you want to delete the team "{{ team.name }}"?</h1>
+<form method="POST">
+    {% csrf_token %}
+    <button type="submit">Yes, delete</button>
+</form>
+<a href="{% url 'team_list' %}">Cancel</a>
+
+{%endblock %}
+
+
+
+

@@ -1,0 +1,265 @@
+{% extends 'home.html' %}
+{% block title %}Projects{% endblock %}
+{% block content %}
+    <div class="container-fluid my-4">
+
+        <!-- Breadcrumb Navigation -->
+        <nav aria-label="breadcrumb" class="bg-light">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a class="text-decoration-none" href="{% url 'home' %}">Home</a></li>
+                <li class="breadcrumb-item"><a class="text-decoration-none" href="{% url 'project_list' %}">Projects</a></li>
+                <li class="breadcrumb-item active" aria-current="page">{{ title }}</li>
+            </ol>
+        </nav>
+
+        {% if messages %}
+            <!-- Iterate over messages -->
+            {% for message in messages %}
+                <!-- Check if message tag is 'danger' (error message) -->
+                {% if message.tags == 'danger' %}
+                    <!-- Modal for Error Message -->
+                    <div class="modal fade" id="errorModal" tabindex="-1" aria-labelledby="errorModalLabel" aria-hidden="true">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="errorModalLabel">Error</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    {{ message }}
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% else %}
+                    <!-- Normal Alerts for Non-Error Messages -->
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+                <!-- Row for Activity Log and Project Edit Form -->
+        <div class="row g-4">
+            
+            <!-- Project Edit Form -->
+            <div class="col-lg-5">
+                <div class="card shadow-sm">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Update</h5>
+                    </div>
+
+                    <div class="card-body">
+                        <form method="POST" class="needs-validation" novalidate>
+                            {% csrf_token %}
+
+                            <!-- Project Name -->
+                            <div class="mb-4">
+                                <label for="name" class="form-label">Project Name</label>
+                                <input type="text" class="form-control shadow-sm" id="name" name="name" 
+                                    placeholder="Enter project name" 
+                                    value="{{ project.name }}" 
+                                    required minlength="4" maxlength="16"
+                                    pattern="^[A-Za-z][A-Za-z0-9 ]{3,49}$"
+                                    title="Project name must start with a letter and be between 4 and 50 characters long. Only letters, numbers, and spaces are allowed after the first letter.">
+                                <div class="invalid-feedback">
+                                    Project name must start with a letter and be between 4 and 50 characters long.
+                                </div>
+                            </div>
+
+                            <!-- Project Description -->
+                            <div class="mb-4">
+                                <label for="description" class="form-label">Project Description</label>
+                                <textarea class="form-control shadow-sm" id="description" name="description" 
+                                        placeholder="Enter project description" required
+                                        minlength="10" maxlength="500">{{ project.description }}</textarea>
+                                <div class="invalid-feedback">
+                                    Project description is required and must be between 10 to 500 characters.
+                                </div>
+                            </div>
+
+                            <!-- Start Date -->
+                            <div class="mb-4">
+                                <label for="start_date" class="form-label">Start Date</label>
+                                <input type="date" class="form-control shadow-sm" id="start_date" name="start_date"
+                                    value="{{ project.start_date|date:'Y-m-d' }}" required>
+                                <div class="invalid-feedback">Start date is required.</div>
+                            </div>
+
+                            <!-- End Date -->
+                            <div class="mb-4">
+                                <label for="end_date" class="form-label">End Date</label>
+                                <input type="date" class="form-control shadow-sm" id="end_date" name="end_date"
+                                    value="{{ project.end_date|date:'Y-m-d' }}" required>
+                                <div class="invalid-feedback">
+                                    End date is required and must be after the start date and at least 6 days later.
+                                </div>
+                                <div class="text-danger" id="end-date-error" style="display: none;">
+                                    End date must be after the start date and at least 6 days later.
+                                </div>
+                            </div>
+
+                            <!-- Team Assignment -->
+                            <div class="mb-4">
+                                <label for="team" class="form-label">Assign Team</label>
+                                <select class="form-select shadow-sm" id="team" name="team" required>
+                                    <option value="">Select a team</option>
+                                    {% for team in teams %}
+                                        <option value="{{ team.id }}" {% if team.id == project.assigned_team.id %}selected{% endif %}>
+                                            {{ team.name }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                                <div class="invalid-feedback">Please select a team.</div>
+                            </div>
+
+                            <!-- Can Be Extended Checkbox -->
+                            <div class="mb-4">
+                                <label for="can_be_extended" class="form-label">Can Be Extended</label>
+                                <input type="checkbox" id="can_be_extended" name="can_be_extended" class="form-check-input" 
+                                    {% if project.can_be_extended %}checked{% endif %}>
+                            </div>
+
+                            <!-- Actions -->
+                            <div class="d-flex justify-content-end gap-3">
+                                <a href="{% url 'project_list' %}" class="btn btn-outline-secondary">
+                                    <i class="bi bi-arrow-left"></i> Cancel
+                                </a>
+                                <button type="submit" class="btn btn-success">
+                                    <i class="bi bi-check-circle"></i> Save Project
+                                </button>
+                            </div>
+                        </form>
+
+                    </div>
+                </div>
+            </div>
+
+            <!-- Activity Log Section -->
+            <div class="col-lg-7">
+                <div class="card shadow-sm">
+                    <div class="card-header  d-flex align-items-center justify-content-between">
+                        <h5 class="card-title mb-0">History</h5>
+                        
+                    </div>
+                    <div class="card-body">
+                        {% if activity_logs %}
+                            <div class="accordion" id="activityAccordion">
+                                {% for log in activity_logs %}
+                                    <div class="accordion-item border rounded shadow-sm mb-3">
+                                        <h2 class="accordion-header" id="heading{{ log.id }}">
+                                            <button class="accordion-button collapsed bg-light text-dark" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ log.id }}" aria-expanded="false" aria-controls="collapse{{ log.id }}">
+                                                <strong>Edited By {{ log.user.username }}</strong>
+                                                <span class="text-muted">- {{ log.timestamp|date:"d M Y, H:i" }}</span>
+                                            </button>
+                                        </h2>
+                                        <div id="collapse{{ log.id }}" class="accordion-collapse collapse" aria-labelledby="heading{{ log.id }}" data-bs-parent="#activityAccordion">
+                                            <div class="accordion-body bg-light">
+                                                {% if log.activity_type == 'edit_project' %}
+                                                    <h6 class="text-primary">Old Project Details:</h6>
+                                                    <ul class="list-group">
+                                                        <li class="list-group-item d-flex justify-content-between">
+                                                            <span><strong>Name:</strong></span>
+                                                            <span>{{ log.old_name }}</span>
+                                                        </li>
+                                                        <li class="list-group-item d-flex justify-content-between">
+                                                            <span><strong>Start Date:</strong></span>
+                                                            <span>{{ log.old_start_date }}</span>
+                                                        </li>
+                                                        <li class="list-group-item d-flex justify-content-between">
+                                                            <span><strong>End Date:</strong></span>
+                                                            <span>{{ log.old_end_date }}</span>
+                                                        </li>
+                                                        <li class="list-group-item d-flex justify-content-between">
+                                                            <span><strong>Assigned Team:</strong></span>
+                                                            <span>{{ log.old_team }}</span>
+                                                        </li>
+                                                    </ul>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="alert alert-warning text-center">
+                                <i class="bi bi-exclamation-circle"></i> No project update activity logs available for this project.
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+
+        </div>
+
+    </div>
+
+
+   <script>
+    // Custom JavaScript to handle form validation and prevent submission if invalid
+    (function () {
+        'use strict';
+        
+        // Select all forms with 'needs-validation' class
+        var forms = document.querySelectorAll('.needs-validation');
+        
+        // Loop through each form and apply custom validation
+        Array.prototype.slice.call(forms)
+        .forEach(function (form) {
+            form.addEventListener('submit', function (event) {
+                // Handle date validation logic
+                const startDate = document.getElementById('start_date').value;
+                const endDate = document.getElementById('end_date').value;
+
+                // Get the error message element
+                const errorMessage = document.getElementById('end-date-error');
+
+                const start = new Date(startDate);
+                const end = new Date(endDate);
+
+                // Clear previous error messages
+                errorMessage.style.display = 'none';
+                document.getElementById('end_date').classList.remove('is-invalid');
+
+                // End date should not be before start date
+                if (end < start) {
+                    errorMessage.textContent = "End date cannot be before the start date.";
+                    errorMessage.style.display = 'block';
+                    document.getElementById('end_date').classList.add('is-invalid');
+                    event.preventDefault(); // Prevent form submission
+                    return;
+                }
+
+                // Ensure minimum duration is more than 5 days (i.e., at least 6 days)
+                const timeDiff = (end - start) / (1000 * 3600 * 24); // Calculate duration in days
+                if (timeDiff < 6) {
+                    errorMessage.textContent = "The project duration should be at least 6 days.";
+                    errorMessage.style.display = 'block';
+                    document.getElementById('end_date').classList.add('is-invalid');
+                    event.preventDefault(); // Prevent form submission
+                    return;
+                }
+
+                // Ensure the form validity is checked and fields have valid values
+                if (!form.checkValidity()) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+
+                // Add 'was-validated' class to trigger Bootstrap's validation feedback
+                form.classList.add('was-validated');
+            }, false);
+        });
+    })();
+</script>
+
+
+
+
+
+{% endblock %}

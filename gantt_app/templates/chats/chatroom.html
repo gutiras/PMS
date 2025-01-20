@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat App</title>
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+  >
+  <style>
+    .chat-window {
+      height: 500px;
+      overflow-y: scroll;
+      border: 1px solid #dee2e6;
+      border-radius: 5px;
+      padding: 10px;
+    }
+    .message {
+      margin-bottom: 10px;
+    }
+    .message .user {
+      font-weight: bold;
+    }
+    .message .content {
+      margin-left: 10px;
+    }
+    .message .reply {
+      margin-left: 20px;
+      font-style: italic;
+    }
+    .message-actions {
+      margin-left: auto;
+    }
+    .mention-dropdown {
+      position: absolute;
+      z-index: 1050;
+      background: white;
+      border: 1px solid #dee2e6;
+      border-radius: 5px;
+      max-height: 150px;
+      overflow-y: scroll;
+      width: 100%;
+    }
+    .mention-dropdown-item {
+      padding: 5px 10px;
+      cursor: pointer;
+    }
+    .mention-dropdown-item:hover {
+      background: #f8f9fa;
+    }
+  </style>
+</head>
+<body>
+  <div class="container mt-4">
+    <div class="row">
+      <div class="col-md-8 mx-auto">
+        <h3 class="text-center">Chat Room</h3>
+        <div class="chat-window" id="chatWindow">
+          <!-- Messages will appear here -->
+        </div>
+        <div class="mt-3">
+          <form id="chatForm">
+            <div class="mb-2">
+              <textarea
+                class="form-control"
+                id="messageInput"
+                rows="3"
+                placeholder="Type your message..."
+              ></textarea>
+              <div id="mentionDropdown" class="mention-dropdown d-none"></div>
+            </div>
+            <div class="d-flex">
+              <input
+                type="file"
+                id="fileInput"
+                class="form-control me-2"
+                accept=".pdf,.docx,.jpg,.png,.mp4,.zip"
+              >
+              <button type="submit" class="btn btn-primary">Send</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    const chatWindow = document.getElementById('chatWindow');
+    const chatForm = document.getElementById('chatForm');
+    const messageInput = document.getElementById('messageInput');
+    const fileInput = document.getElementById('fileInput');
+    const mentionDropdown = document.getElementById('mentionDropdown');
+      let projectName = "{{ project.name }}";
+
+    projectName = projectName.replace(/ /g, "_");
+    const socket = new WebSocket(
+        'ws://' + window.location.host + '/ws/chat/' + projectName + '/'
+    );
+    // WebSocket setup
+
+    socket.onmessage = function(event) {
+      const data = JSON.parse(event.data);
+      addMessageToChat(data);
+    };
+
+    chatForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      const message = messageInput.value.trim();
+      const file = fileInput.files[0];
+
+      const messageData = { content: message };
+
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const base64File = e.target.result.split(',')[1];
+          messageData.file = base64File;
+          messageData.file_name = file.name;
+          socket.send(JSON.stringify(messageData));
+        };
+        reader.readAsDataURL(file);
+      } else {
+        socket.send(JSON.stringify(messageData));
+      }
+
+      messageInput.value = '';
+      fileInput.value = '';
+    });
+
+    function addMessageToChat(data) {
+      const messageDiv = document.createElement('div');
+      messageDiv.classList.add('message');
+
+      const userSpan = document.createElement('span');
+      userSpan.classList.add('user');
+      userSpan.textContent = `${data.user}: `;
+
+      const contentSpan = document.createElement('span');
+      contentSpan.classList.add('content');
+      contentSpan.textContent = data.message;
+
+      messageDiv.appendChild(userSpan);
+      messageDiv.appendChild(contentSpan);
+
+      if (data.file) {
+        const fileLink = document.createElement('a');
+        fileLink.href = data.file;
+        fileLink.textContent = ` [File]`;
+        fileLink.target = '_blank';
+        messageDiv.appendChild(fileLink);
+      }
+
+      if (data.reply_to) {
+        const replyDiv = document.createElement('div');
+        replyDiv.classList.add('reply');
+        replyDiv.textContent = `Replying to: ${data.reply_to}`;
+        messageDiv.appendChild(replyDiv);
+      }
+
+      chatWindow.appendChild(messageDiv);
+      chatWindow.scrollTop = chatWindow.scrollHeight;
+    }
+
+    // Mentions functionality (Mocked users)
+    const users = ['Alice', 'Bob', 'Charlie'];
+    messageInput.addEventListener('input', function(e) {
+      const text = e.target.value;
+      const mentionRegex = /@(\w*)$/;
+      const match = text.match(mentionRegex);
+
+      if (match) {
+        const query = match[1].toLowerCase();
+        const filteredUsers = users.filter(user => user.toLowerCase().startsWith(query));
+        showMentionDropdown(filteredUsers);
+      } else {
+        hideMentionDropdown();
+      }
+    });
+
+    function showMentionDropdown(users) {
+      mentionDropdown.innerHTML = '';
+      users.forEach(user => {
+        const item = document.createElement('div');
+        item.classList.add('mention-dropdown-item');
+        item.textContent = user;
+        item.addEventListener('click', function() {
+          const text = messageInput.value;
+          messageInput.value = text.replace(/@(\w*)$/, `@${user} `);
+          hideMentionDropdown();
+        });
+        mentionDropdown.appendChild(item);
+      });
+      mentionDropdown.classList.remove('d-none');
+    }
+
+    function hideMentionDropdown() {
+      mentionDropdown.innerHTML = '';
+      mentionDropdown.classList.add('d-none');
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,183 @@
+{% extends 'home.html' %}
+{% block title %}Users{% endblock %}
+{% block content %}
+    <div class="breadcrumb">
+        {% block breadcrumb %}
+        <!-- Default breadcrumb -->
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a class="text-decoration-none" href="{% url 'home' %}">Home</a></li>
+                <li class="breadcrumb-item"><a class="text-decoration-none" href="{% url 'user_list' %}">Users</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Create</li>
+            </ol>
+        </nav>
+        {% endblock %}
+    </div>
+    
+    
+    <div class="container ">
+        <div class="row g-4">
+            <div class="col-md-8 d-flex ">
+                <div class="col-md-2 ">
+                    <a href="{% url 'user_list'%}" class="btn btn-secondary btn-sm mb-2">
+                        <i class="bi bi-arrow-left-circle"></i> Back to Users
+                    </a>
+                </div>
+                <div class="col-md-10">
+                    {% if messages %}
+                        <!-- Iterate over messages -->
+                        {% for message in messages %}
+                            <!-- Check if message tag is 'danger' (error message) -->
+                            {% if message.tags == 'danger' %}
+                                <!-- Modal for Error Message -->
+                                <div class="modal fade" id="errorModal" tabindex="-1" aria-labelledby="errorModalLabel" aria-hidden="true">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title" id="errorModalLabel">Error</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                {{ message }}
+                                            </div>
+                                            <div class="modal-footer">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% else %}
+                                <!-- Normal Alerts for Non-Error Messages -->
+                                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                    {% endif %}
+                </div>  
+            </div>
+            <!-- User Form -->
+            <div class="col-lg-8">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">User Details</h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Form Section -->
+                        <form method="post" id="userForm">
+                            {% csrf_token %}
+                            <!-- Username -->
+                            <div class="form-group mb-3">
+                                <label for="username" class="form-label">Username</label>
+
+                                <input type="text" id="username" name="username" class="form-control" pattern="^[a-zA-Z][a-zA-Z0-9_\-]{3,19}$" 
+                                title="Username must start with a letter, be 4-20 characters long, and may include letters, numbers, underscores (_), or hyphens (-)." 
+                                placeholder="Enter username" required>
+
+                                <div class="invalid-feedback">
+                                Username must start with a letter and be 4-20 characters long. Only letters, numbers, underscores, and hyphens are allowed after the first character.
+                                </div>
+                            </div>
+
+                            <!-- Email -->
+                            <div class="form-group mb-3">
+                                <label for="email" class="form-label">Email</label>
+                                <input type="email" id="email" name="email" class="form-control" 
+                                    placeholder="Enter email address" 
+                                    required>
+                                <div class="invalid-feedback">Please enter a valid email address.</div>
+                            </div>
+
+                            <!-- Password -->
+                            <div class="form-group mb-3">
+                                <label for="password" class="form-label">Password</label>
+                                <input type="password" id="password" name="password" class="form-control" 
+                                    minlength="8" 
+                                    maxlength="50" 
+                                    placeholder="Enter password" 
+                                    required>
+                                <div class="invalid-feedback">Password must be at least 8 characters long.</div>
+                            </div>
+
+                            <!-- Confirm Password -->
+                            <div class="form-group mb-3">
+                                <label for="confirm_password" class="form-label">Confirm Password</label>
+                                <input type="password" id="confirm_password" name="confirm_password" class="form-control" 
+                                    placeholder="Re-enter password" 
+                                    required>
+                                <div class="invalid-feedback">Passwords must match.</div>
+                            </div>
+
+                            <!-- Role -->
+                            <div class="form-group mb-3">
+                                <label for="role" class="form-label">Role</label>
+                                <select id="role" name="role" class="form-control" required>
+                                <option value="" disabled selected>Select a role</option>
+                                <option value="super_admin">Super Admin</option>
+                                <option value="admin">Admin</option>
+                                <option value="staff">Staff</option>
+                                <option value="viewer">Viewer</option>
+                                </select>
+                                <div class="invalid-feedback">Please select a role.</div>
+                            </div>
+
+                            <!-- Actions -->
+                            <div class="d-flex justify-content-end gap-2">
+                                <a href="{% url 'user_list' %}" class="btn btn-outline-danger ">Cancel</a>
+                                <button type="submit" class="btn btn-outline-primary ">Create</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Form Validation -->
+    <script>
+     document.addEventListener('DOMContentLoaded', function () {
+    const form = document.getElementById('userForm');
+    const password = document.getElementById('password');
+    const confirmPassword = document.getElementById('confirm_password');
+
+    // Add Bootstrap validation styles on submit
+    form.addEventListener('submit', function (event) {
+        if (!form.checkValidity()) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+
+        // Password match validation
+        if (password.value !== confirmPassword.value) {
+            confirmPassword.setCustomValidity('Passwords do not match.');
+        } else {
+            confirmPassword.setCustomValidity(''); // Reset validity
+        }
+
+        form.classList.add('was-validated');
+    });
+
+    // Real-time password match validation
+    confirmPassword.addEventListener('input', function () {
+        if (password.value !== confirmPassword.value) {
+            confirmPassword.setCustomValidity('Passwords do not match.');
+        } else {
+            confirmPassword.setCustomValidity(''); // Reset validity
+        }
+    });
+
+    // Optional: To reset validity on any change to the password field
+    password.addEventListener('input', function () {
+        if (confirmPassword.value !== '' && password.value !== confirmPassword.value) {
+            confirmPassword.setCustomValidity('Passwords do not match.');
+        } else {
+            confirmPassword.setCustomValidity('');
+        }
+    });
+});
+
+
+    </script>
+
+{% endblock %}

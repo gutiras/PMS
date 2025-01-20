@@ -1,0 +1,176 @@
+
+ /* Side Bar Style */
+#logo_color {
+    background-color: #142d46;
+}
+
+ /* Navbar Style */
+.navbar {
+    z-index: 1000;
+}
+
+  /* Ensure the profile image is rounded and consistent size */
+.navbar .dropdown-toggle img {
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+}
+
+
+  /* Chat Room Style */
+.sender {
+    background-color: #fafeff; /* Light blue for sender */
+    text-align: right;
+    border: 1px solid #b6e0eb;
+}
+
+.viewer {
+    background-color: #08d1f9; /* Light red for viewer */
+    text-align: left;
+    border: 1px solid #7d7d7d;
+}
+.message-item {
+    padding: 10px;
+    background-color: #f8f9fa;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    }
+    
+    .message-content {
+    font-size: 1rem;
+    margin-bottom: 0;
+    }
+    
+    .message-actions {
+    font-size: 0.85rem; /* Smaller font size */
+    margin-top: 5px;
+    }
+    
+    .message-actions a, .message-actions button {
+    text-decoration: none;
+    font-weight: 500;
+    }
+    
+    .message-actions .text-warning {
+    color: #ffc107 !important; /* Bootstrap warning color */
+    }
+    
+    .message-actions .text-danger {
+    color: #dc3545 !important; /* Bootstrap danger color */
+    }
+    
+    
+    
+    .badge.bg-info {
+    font-size: 0.8rem;
+    margin-left: 5px;
+    color: #fff;
+    }
+    
+    
+    
+    #chat-messages::-webkit-scrollbar {
+    display: none; /* For Chrome, Safari, and Edge - hides scrollbar */
+    }
+    /* General Chat Messages Styling */
+    #chat-messages {
+    height: 400px;
+    overflow-y: scroll;
+    scrollbar-width: none; /* Hide scrollbar for Firefox */
+    }
+    
+    #chat-messages::-webkit-scrollbar {
+    display: none; /* Hide scrollbar for Chrome/Safari */
+    }
+    
+    /* Sender and Viewer Box Styling */
+    .message-box {
+    max-width: 60%; /* Restrict the message width for better readability */
+    background-color: #f8f9fa; /* Default light background for messages */
+    border-radius: 10px;
+    }
+    
+    
+    
+    /* Username and Timestamp Styling */
+    .username {
+    font-size: 1rem;
+    font-weight: bold;
+    color: #007bff;
+    }
+    
+    .message-box small {
+    font-size: 0.85rem;
+    color: #6c757d; /* Muted gray */
+    }
+    
+    /* Reply Section Styling */
+    .replied-message {
+    font-size: 0.9rem;
+    border-left: 4px solid #ccc;
+    padding-left: 8px;
+    margin-bottom: 8px;
+    }
+    
+    /* Message Content Styling */
+    .message-content {
+    font-size: 1rem;
+    color: #212529; /* Dark text */
+    }
+    
+    .project-members {
+    max-height: 300px; /* Limit height for scrolling */
+    overflow-y: auto; /* Enable scrolling if content exceeds max-height */
+    margin-top: 10px;
+    }
+    
+    .project-members .list-group-item {
+    font-size: 0.9rem;
+    padding: 10px 15px;
+    border: none;
+    border-bottom: 1px solid #ddd; /* Separator */
+    }
+    
+    .project-members .badge {
+    font-size: 0.8rem;
+    }
+/* Styling the notification dropdown */
+.dropdown-menu {
+    max-height: 400px;
+    overflow-y: auto;
+    min-width: 300px;
+}
+.dropdown-item small {
+    font-size: 0.8em;
+    color: #6c757d;
+}
+
+
+#chart-container > div {
+    height: 500px !important; /* Ensure a fixed height */
+    width: 100%;             /* Full width */
+    position: relative;      /* Retain relative positioning */
+}
+
+/* Override React-Dates Input Field */
+.DateInput_input {
+font-size: 14px !important;
+font-weight: 400 !important;
+color: #333 !important;
+background-color: #f9f9f9 !important;
+padding: 8px !important;
+border: 1px solid #ccc !important;
+border-radius: 4px !important;
+}
+
+/* Override other React-Dates classes */
+.DateRangePickerInput {
+border: none !important;
+background-color: transparent !important;
+}
+
+.DateRangePickerInput_arrow {
+display: none !important; /* Hide the arrow if not needed */
+}
+
+

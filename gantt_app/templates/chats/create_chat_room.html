@@ -1,0 +1,18 @@
+{% extends 'home.html' %}
+
+{% block content %}
+<h2>Create Chat Room for {{ project.name }}</h2>
+
+{% if error %}
+<p style="color: red;">{{ error }}</p>
+{% endif %}
+
+<form method="post">
+    {% csrf_token %}
+    <label for="name">Chat Room Name:</label>
+    <input type="text" name="name" id="name" placeholder="Enter chat room name">
+    <button type="submit">Create</button>
+</form>
+
+<a href="{% url 'project_chat_rooms' project.id %}">Back to Chat Rooms</a>
+{% endblock %}

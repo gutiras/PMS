@@ -1,0 +1,404 @@
+
+{% extends 'home.html' %}
+{% block title %}File Manager{% endblock %}
+{% block content %}
+    <style>
+            #contextMenu {
+                z-index: 1000;
+            }
+
+            .file-item {
+                cursor: pointer;
+            }
+    </style>
+      <!-- Breadcrumb Navigation -->
+<div class="bg-light">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a class="text-decoration-none" href="{% url 'home' %}">Home</a></li>
+            <li class="breadcrumb-item"><a class="text-decoration-none" href="{% url 'project_list' %}">Projects</a></li>
+            <li class="breadcrumb-item"><a class="text-decoration-none" href="{% url 'file_manager' project.id %}" >Files</a></li>
+            {% for breadcrumb_item in breadcrumb %}
+                <li class="breadcrumb-item">
+                    <a class="text-decoration-none" href="{{ breadcrumb_item.path }}">{{ breadcrumb_item.name }}</a>
+                </li>
+            {% endfor %}
+        </ol>
+    </nav>
+</div>
+  {% if messages %}
+        <!-- Iterate over messages -->
+        {% for message in messages %}
+            <!-- Check if message tag is 'danger' (error message) -->
+            {% if message.tags == 'danger' %}
+                <!-- Modal for Error Message -->
+                <div class="modal fade" id="errorModal" tabindex="-1" aria-labelledby="errorModalLabel" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="errorModalLabel">Error</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                {{ message }}
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <!-- Normal Alerts for Non-Error Messages -->
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+    <div class="container">
+        <h2 class="my-4"></h2>
+
+        <!-- File Search and Action Buttons (in a row) -->
+        <div class="mb-4 row justify-content-end align-items-center">
+            <!-- Search Input: Takes up 8 columns on medium and larger screens -->
+            <div class="col-md-8 mb-3">
+                <input type="text" id="fileSearch" class="form-control" placeholder="Search files and folders..." onkeyup="searchFilesAndFolders()">
+            </div>
+
+            <!-- Action Buttons  -->
+            <div class="col-md-4 mb-3 d-flex justify-content-end gap-2">
+                <!-- File Upload Button -->
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#uploadFileModal">File Upload</button>
+                
+                <!-- Add Folder Button -->
+                <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addFolderModal">Add Folder</button>
+            </div>
+        </div>
+
+
+        <!-- Upload File Modal -->
+        <div class="modal fade" id="uploadFileModal" tabindex="-1" aria-labelledby="uploadFileModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="uploadFileModalLabel">Upload File</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form method="POST" enctype="multipart/form-data" action="{% url 'file_manager' project.id %}?folder={{ request.GET.folder|default:'' }}">
+                {% csrf_token %}
+                <div class="d-flex align-items-center">
+                    <!-- File input field -->
+                    <input type="file" name="file" class="form-control me-2" style="max-width: 250px;">
+                    <!-- Upload button aligned with the input -->
+                    <button type="submit" class="btn btn-primary">Upload File</button>
+                </div>
+                </form>
+            </div>
+            </div>
+        </div>
+        </div>
+
+        <!-- Add Folder Modal -->
+        <div class="modal fade" id="addFolderModal" tabindex="-1" aria-labelledby="addFolderModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="addFolderModalLabel">Add New Folder</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form method="POST" action="{% url 'file_manager' project.id %}?folder={{ request.GET.folder|default:'' }}">
+                            {% csrf_token %}
+                            <input type="text" name="folder_name" placeholder="New Folder Name" class="form-control mb-3">
+                            <button type="submit" class="btn btn-primary">Add Folder</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+       
+
+        <!-- File Manager Content -->
+        <div class="mt-4 d-flex flex-wrap">
+            <!-- Folder Listings -->
+            {% for folder in folders %}
+                <div class="col-md-2 text-center mb-3 folder-item">
+                    <a class="text-decoration-none" href="{% url 'file_manager' project.id %}?folder={{ folder.path }}">
+                        <i class="bi bi-folder-fill text-warning display-1"></i>
+                        <div class="mt-2">{{ folder.name }}</div>
+                    </a>
+                </div>
+            {% endfor %}
+
+            <!-- File Listings -->
+            {% for file in files %}
+                <div class="col-md-2 text-center mb-3 file-item">
+                    <div class="file-container" draggable="true">
+                        <!-- Dynamically set the icon based on file extension -->
+                        <i class="{{ file.icon }} text-primary display-1"></i>
+                        <div class="mt-2 text-truncate" >
+                            <a href="{{ file.path }}" target="_blank" class="text-dark" download>{{ file.name }}</a>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Context Menu -->
+    <div id="contextMenu" class="dropdown-menu" style="display: none; position: absolute;">
+        <a id="contextRename" class="dropdown-item" href="#">Rename</a>
+        <a id="contextMove" class="dropdown-item" href="#">Move</a>
+        <a id="contextDelete" class="dropdown-item" href="#">Delete</a>
+    </div>
+    <!-- Rename Modal -->
+    <div class="modal" id="renameModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Rename</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="text" id="newName" class="form-control" placeholder="New Name">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <form id="renameForm" method="POST" action="{% url 'file_manager' project.id %}?folder={{ request.GET.folder|default:'' }}">
+                        {% csrf_token %}
+                        <input type="hidden" name="old_name" id="oldName"> <!-- will hold current name -->
+                        <input type="hidden" name="new_name" id="newNameHidden"> <!-- added new_name -->
+                        <input type="hidden" name="rename" value="true">
+                        <button type="submit" class="btn btn-primary">Rename</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Move Modal -->
+    <div class="modal" id="moveModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Move</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <label for="targetFolder">Select Target Folder</label>
+                    <select id="targetFolder" class="form-control">
+                        <option value="" disabled selected>Select a folder</option>
+                        <option value="{{ parent_folder_name }}">Parent Folder</option>
+                        {% for folder in folders %}
+                            <option value="{{ folder.name }}">{{ folder.name }}</option>
+                        {% endfor %} 
+                    </select>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <form id="moveForm" method="POST" action="{% url 'file_manager' project.id %}?folder={{ request.GET.folder|default:'' }}">
+                        {% csrf_token %}
+                        <input type="hidden" name="file_or_folder" id="moveName">
+                        <input type="hidden" name="move" value="true">
+                        <input type="hidden" name="target_folder" id="targetFolderHidden">
+                        <button type="submit" class="btn btn-primary">Move</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Modal -->
+    <div class="modal" id="deleteModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Delete</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to delete this item?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">No</button>
+                    <form id="deleteForm" method="POST" action="{% url 'file_manager' project.id %}?folder={{ request.GET.folder|default:'' }}">
+                        {% csrf_token %}
+                        <input type="hidden" name="file_or_folder" id="deleteName">
+                        <input type="hidden" name="delete" value="true">
+                        <button type="submit" class="btn btn-danger">Delete</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+   
+    <script>
+        $(document).ready(function () {
+            // Add Folder Modal
+            $('#add-folder-btn').click(function () {
+                $('#addFolderModal').modal('show');
+            });
+
+            // Search files/folders
+            $('#search-files').on('keyup', function () {
+                const query = $(this).val().toLowerCase();
+                $('#file-display .file-container, #file-display .folder-container').filter(function () {
+                    $(this).toggle($(this).text().toLowerCase().indexOf(query) > -1);
+                });
+            });
+
+            // Folder navigation
+            $('.folder-link').on('click', function (e) {
+                e.preventDefault();
+                const path = $(this).data('path');
+                window.location.href = `/projects/{{ project.id }}/browse/?folder=${path}`;
+            });
+
+            // Navigate via breadcrumb
+            $('.folder-path').on('click', function (e) {
+                e.preventDefault();
+                const path = $(this).data('path');
+                window.location.href = `/projects/{{ project.id }}/browse/?folder=${path}`;
+            });
+        });
+    </script>
+
+     <script>
+        document.querySelectorAll('.rename-btn').forEach(function(button) {
+            button.addEventListener('click', function() {
+                const name = this.dataset.name;
+                document.getElementById('oldName').value = name; // Set old name in hidden field
+                document.getElementById('newName').value = name; // Set the initial value to old name in the input field
+                new bootstrap.Modal(document.getElementById('renameModal')).show();
+            });
+        });
+
+        // Listen for the form submission
+        const renameForm = document.getElementById('renameForm');
+        renameForm.addEventListener('submit', function(event) {
+            const newNameInput = document.getElementById('newName');
+            const newNameHiddenInput = document.getElementById('newNameHidden');
+            const oldNameInput = document.getElementById('oldName');
+
+            const newName = newNameInput.value;  // Get the new name
+            const oldName = oldNameInput.value;  // Get the old name
+
+            if (!newName || newName.trim() === "") {
+                event.preventDefault();  // Prevent submission if new name is empty
+                alert('Please enter a new name for the file.');
+            } else {
+                newNameHiddenInput.value = newName;  // Set the new name in the hidden input field
+            }
+        });
+    </script>
+    <!-- JavaScript to Set the Move Information -->
+    <script>
+        document.querySelectorAll('.move-btn').forEach(function(button) {
+            button.addEventListener('click', function() {
+                const name = this.dataset.name;  // Get the name of the file/folder
+                document.getElementById('moveName').value = name;  // Set the name of the file/folder being moved
+                new bootstrap.Modal(document.getElementById('moveModal')).show();  // Open the modal
+            });
+        });
+
+        // When the user submits the Move form
+        document.getElementById('moveForm').addEventListener('submit', function(event) {
+            const targetFolder = document.getElementById('targetFolder').value;
+            const targetFolderHidden = document.getElementById('targetFolderHidden');
+
+            if (!targetFolder) {
+                event.preventDefault();  // Prevent form submission if no target folder selected
+                alert('Please select a target folder.');
+            } else {
+                targetFolderHidden.value = targetFolder;  // Set the selected target folder
+            }
+        });
+    </script>
+
+    <script>
+        const contextMenu = document.getElementById('contextMenu');
+        let currentItem = null; // Track the file/folder item associated with the context menu
+
+        document.addEventListener('contextmenu', (event) => {
+            const fileItem = event.target.closest('.file-item, a'); // Check for .file-item or a tag
+            if (fileItem) {
+                event.preventDefault();  // Prevent the default context menu
+
+                // Show the context menu at the mouse position
+                contextMenu.style.top = `${event.pageY}px`;
+                contextMenu.style.left = `${event.pageX}px`;
+                contextMenu.style.display = 'block';
+                
+                currentItem = fileItem;  // Track the currently clicked item
+            } else {
+                contextMenu.style.display = 'none';  // Hide the context menu when clicked outside a file or folder
+            }
+        });
+
+        // Hide the context menu if clicked anywhere else
+        document.addEventListener('click', () => {
+            contextMenu.style.display = 'none';
+        });
+
+        // Rename action
+        document.getElementById('contextRename').addEventListener('click', () => {
+            const itemName = currentItem.querySelector('span') ? currentItem.querySelector('span').textContent : currentItem.textContent.trim(); 
+            document.getElementById('oldName').value = itemName;
+            document.getElementById('newName').value = itemName;
+            new bootstrap.Modal(document.getElementById('renameModal')).show(); // Open rename modal
+        });
+
+        // Move action
+        document.getElementById('contextMove').addEventListener('click', () => {
+            const itemName = currentItem.querySelector('span') ? currentItem.querySelector('span').textContent : currentItem.textContent.trim();
+            document.getElementById('moveName').value = itemName;
+            new bootstrap.Modal(document.getElementById('moveModal')).show(); // Open move modal
+        });
+
+        // Delete action
+        document.getElementById('contextDelete').addEventListener('click', () => {
+            const itemName = currentItem.querySelector('span') ? currentItem.querySelector('span').textContent : currentItem.textContent.trim();
+            document.getElementById('deleteName').value = itemName;
+            new bootstrap.Modal(document.getElementById('deleteModal')).show(); // Open delete modal
+        });
+
+    </script>
+
+    <script>
+        // Function for searching files and folders by name
+        function searchFilesAndFolders() {
+            const query = document.getElementById('fileSearch').value.toLowerCase();
+            
+            // Select all files and folders
+            const fileItems = document.querySelectorAll('.file-item');
+            const folderItems = document.querySelectorAll('.folder-item');
+
+            // Filter files
+            fileItems.forEach(function (item) {
+                const fileName = item.querySelector('a') ? item.querySelector('a').textContent.toLowerCase() : '';
+                if (fileName.includes(query)) {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+
+            // Filter folders
+            folderItems.forEach(function (item) {
+                const folderName = item.querySelector('div') ? item.querySelector('div').textContent.toLowerCase() : '';
+                if (folderName.includes(query)) {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+    </script>
+
+{% endblock %}

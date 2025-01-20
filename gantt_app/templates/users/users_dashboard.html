@@ -1,0 +1,242 @@
+
+{% extends 'home.html' %}
+{% block title %}Projects{% endblock %}
+{% block content %}
+<!-- Breadcrumb -->
+        <div class="breadcrumb">
+            {% block breadcrumb %}
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a class="text-decoration-none" href="{% url 'home' %}">Home</a></li>
+                    <li class="breadcrumb-item active" aria-current="page"> My Dashboard</li>
+                </ol>
+            </nav>
+            {% endblock %}
+        </div>
+
+        <a href="{% url 'dashboard' %}" class="btn btn-secondary btn-sm mb-2">
+            <i class="bi bi-arrow-left"></i> Back
+        </a>
+<!-- Filter and Search Section -->
+<div class="row mb-4">
+    <div class="col-md-6">
+
+        <select id="taskStatusFilter" class="form-select">
+            <option value="">All Statuses</option>
+            <option value="Pending">Pending</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Completed">Completed</option>
+        </select>
+    </div>
+    <div class="col-md-6">
+       
+        <input type="text" id="taskSearchInput" class="form-control" placeholder="Search by name, description, or assigned user">
+    </div>
+</div>
+
+{% if project_tasks %}
+    {% for project, tasks in project_tasks.items %}
+        <div class="card mb-3">
+            <div class="card-header">
+                <h4 class="mb-0">{{ project.name }}</h4>
+                <p class="mb-0 text-muted">{{ project.description }}</p>
+            </div>
+            <div class="card-body">
+                {% if tasks %}
+                    <ul class="list-group" id="taskList">
+                        {% for task in tasks %}
+                            <li class="list-group-item task-item">
+                                <div class="row">
+                                    <!-- Task Details -->
+                                    <div class="col-md-8">
+                                        <div class="mb-1">
+                                            <!-- Task Name and Modal Trigger -->
+                                            <h5 
+                                                class="text-primary fw-bold d-inline mb-0" 
+                                                style="cursor: pointer;" 
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#taskDetailsModal"
+                                                data-task-id="{{ task.id }}"
+                                                data-task-name="{{ task.name }}"
+                                                data-task-description="{{ task.description }}"
+                                                data-task-start-date="{{ task.start_date }}"
+                                                data-task-end-date="{{ task.end_date }}"
+                                                data-task-days-left="{{ task.days_left }}"
+                                                data-project-id="{{ project.id }}"
+                                                data-task-delayed-days="{{ task.delayed_days }}"
+                                                data-task-assigned="{{ task.assigned_to|join:', ' }}">
+                                                {{ task.name }}
+                                            </h5>
+                                            <span>
+                                                <small>{{ task.status }}</small>
+                                            </span>
+                                        </div>
+
+                                        <!-- Assigned Users -->
+                                        <small class="text-muted small">
+                                            <span class="fw-bold me-1">Assigned To:</span>
+                                            {% if task.assigned_to %}
+                                                <span class="text-nowrap">{{ task.assigned_to|join:", " }}</span>
+                                            {% else %}
+                                                <span class="text-danger fst-italic">Not Assigned</span>
+                                            {% endif %}
+                                        </small>
+
+                                        <!-- Time Display -->
+                                        <span class="d-inline-block small mx-5">
+                                            {% if task.delayed_days %}
+                                                <span class="text-warning">{{ task.delayed_days }}</span>
+                                            {% else %}
+                                                <span class="text-success">{{ task.days_left }} left</span>
+                                            {% endif %}
+                                        </span>
+                                    </div>
+
+                                    <!-- Actions -->
+                                    <div class="col-md-4 mt-2">
+                                        <div class="d-flex justify-content-end align-items-end">
+                                            <a href="{% url 'task_updates' project.id task.id %}" class="btn btn-outline-secondary btn-sm">
+                                                <i class="bi bi-clock-history"></i> Daily Update
+                                            </a>
+                                            <button 
+                                                type="button"
+                                                class="btn btn-outline-primary btn-sm mx-2"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#taskDetailsModal"
+                                                data-task-id="{{ task.id }}"
+                                                data-project-id="{{ project.id }}"
+                                                data-task-name="{{ task.name }}"
+                                                data-task-description="{{ task.description }}"
+                                                data-task-start-date="{{ task.start_date }}"
+                                                data-task-end-date="{{ task.end_date }}"
+                                                data-task-days-left="{{ task.days_left }}"
+                                                data-task-delayed-days="{{ task.delayed_days }}"
+                                                data-task-assigned="{{ task.assigned_to|join:', ' }}">
+                                                <i class="bi bi-eye"></i> View
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <div class="alert alert-info text-center">No tasks available for this project.</div>
+                {% endif %}
+            </div>
+        </div>
+    {% endfor %}
+{% else %}
+    <div class="alert alert-info text-center">No projects or tasks available.</div>
+{% endif %}
+
+<!-- Task Details Modal -->
+<div class="modal fade" id="taskDetailsModal" tabindex="-1" aria-labelledby="taskDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="taskDetailsModalLabel">Task Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p><strong>Task Name:</strong> <span id="modalTaskName"></span></p>
+                <p><strong>Description:</strong> <span id="modalTaskDescription"></span></p>
+                <p><strong>Start Date:</strong> <span id="modalTaskStartDate"></span></p>
+                <p><strong>End Date:</strong> <span id="modalTaskEndDate"></span></p>
+                <p><strong>Assigned To:</strong> <span id="modalTaskAssigned"></span></p>
+                <p><strong>Days Left:</strong> <span id="modalTaskDaysLeft"></span></p>
+                <p><strong>Delayed Days:</strong> <span id="modalTaskDelayedDays"></span></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                <a id="editTaskLink" href="#" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-pencil"></i> Edit
+                </a>
+                <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                    <i class="bi bi-trash"></i> Delete
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Task Detail and confirm  modal Script -->
+    <script>
+        const taskDetailsModal = document.getElementById('taskDetailsModal');
+taskDetailsModal.addEventListener('show.bs.modal', function (event) {
+    const triggerElement = event.relatedTarget;
+
+    const projectId = triggerElement.getAttribute('data-project-id');
+    const taskId = triggerElement.getAttribute('data-task-id');
+    const taskName = triggerElement.getAttribute('data-task-name');
+    const taskDescription = triggerElement.getAttribute('data-task-description');
+    const taskStartDate = triggerElement.getAttribute('data-task-start-date');
+    const taskEndDate = triggerElement.getAttribute('data-task-end-date');
+    const taskAssigned = triggerElement.getAttribute('data-task-assigned');
+    const taskDelayedDays = triggerElement.getAttribute('data-task-days-left');
+    const taskDaysLeft = triggerElement.getAttribute('data-task-delayed-days');
+
+    // Update modal content
+    document.getElementById('modalTaskName').textContent = taskName;
+    document.getElementById('modalTaskDescription').textContent = taskDescription;
+    document.getElementById('modalTaskStartDate').textContent = taskStartDate;
+    document.getElementById('modalTaskEndDate').textContent = taskEndDate;
+    document.getElementById('modalTaskAssigned').textContent = taskAssigned;
+    document.getElementById('modalTaskDelayedDays').textContent = taskDelayedDays;
+    document.getElementById('modalTaskDaysLeft').textContent = taskDaysLeft;
+
+    // Update Edit Task link
+    const editTaskLink = document.getElementById('editTaskLink');
+    editTaskLink.href = `/projects/${projectId}/tasks/${taskId}/edit/`;
+
+    // Set Delete Task form action
+    const deleteForm = document.getElementById('deleteTaskForm');
+    deleteForm.action = `/projects/${projectId}/tasks/${taskId}/delete/`;
+});
+    </script>
+<script>
+   document.addEventListener('DOMContentLoaded', () => {
+    const taskStatusFilter = document.getElementById('taskStatusFilter');
+    const taskSearchInput = document.getElementById('taskSearchInput');
+    const projectCards = document.querySelectorAll('.card'); // Each project card
+
+    const filterAndSearchTasks = () => {
+        const filter = taskStatusFilter.value.toLowerCase();
+        const searchQuery = taskSearchInput.value.toLowerCase();
+
+        projectCards.forEach(projectCard => {
+            const tasks = projectCard.querySelectorAll('.task-item');
+            let hasVisibleTask = false;
+
+            tasks.forEach(task => {
+                const taskName = task.querySelector('.text-primary').textContent.toLowerCase();
+                const taskAssigned = task.querySelector('.text-muted').textContent.toLowerCase();
+                const taskStatus = task.querySelector('small').textContent.toLowerCase();
+
+                const matchesFilter = filter === '' || taskStatus.includes(filter);
+                const matchesSearch = searchQuery === '' || 
+                                      taskName.includes(searchQuery) || 
+                                      taskAssigned.includes(searchQuery);
+
+                if (matchesFilter && matchesSearch) {
+                    task.style.display = 'block'; // Show task
+                    hasVisibleTask = true;
+                } else {
+                    task.style.display = 'none'; // Hide task
+                }
+            });
+
+            // Show/hide the project card based on whether it has any visible tasks
+            projectCard.style.display = hasVisibleTask ? 'block' : 'none';
+        });
+    };
+
+    // Add event listeners
+    taskStatusFilter.addEventListener('change', filterAndSearchTasks);
+    taskSearchInput.addEventListener('input', filterAndSearchTasks);
+});
+
+</script>
+
+{% endblock %}
+

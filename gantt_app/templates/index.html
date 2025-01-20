@@ -1,0 +1,48 @@
+{% extends "home.html" %}
+
+{% block content %}
+     <div class="breadcrumb">
+        {% block breadcrumb %}
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a class="text-decoration-none" href="{% url 'home' %}">Home</a></li>
+                <li class="breadcrumb-item"><a class="text-decoration-none" href="{% url 'project_list' %}">Projects</a></li>
+                <li class="breadcrumb-item"><a class="text-decoration-none" href="{% url 'task_list' project.id %}">Tasks</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Timeline</li>
+            </ol>
+        </nav>
+        {% endblock %}
+    </div>
+    {% if messages %}
+    <div class="alert mt-3" id="message-container">
+        {% for message in messages %}
+            {% if message.level == 40 %}
+                <div class="alert alert-danger" id="error-message">
+                    {{ message }}
+                </div>
+            {% elif message.level == 20 %}
+                <div class="alert alert-info" id="info-message">
+                    {{ message }}
+                </div>
+            {% elif message.level == 30 %}
+                <div class="alert alert-success" id="success-message">
+                    {{ message }}
+                </div>
+            {% endif %}
+        {% endfor %}
+    </div>
+
+   
+{% endif %}
+    {% if chart_html %}
+        <!-- Display the Gantt chart -->
+        <div id="gantt-chart">
+            {{ chart_html|safe }}
+        </div>
+    {% else %}
+        <!-- Message for projects without tasks -->
+        <div class="alert alert-warning">
+            {{ message }}
+        </div>
+    {% endif %}     
+{% endblock %}

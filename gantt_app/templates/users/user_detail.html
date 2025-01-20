@@ -1,0 +1,323 @@
+{% extends 'home.html' %}
+
+{% block title %}Users{% endblock %}
+
+{% block content %}
+<!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a class="text-decoration-none" href="{% url 'home' %}">Home</a></li>
+            <li class="breadcrumb-item"><a class="text-decoration-none" href="{% url 'user_list' %}">Users</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{{user.username}}</li>
+        </ol>
+    </nav>
+    <div class="d-flex justify-content-between align-items-center ">
+        <a href="{% url 'user_list' %}" class="btn btn-secondary btn-sm my-3">
+            <i class="bi bi-arrow-left-circle"></i> back to Users
+        </a>
+        <div class="w-75">
+            {% if messages %}  
+            
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        </div>
+    
+    </div>
+    
+    <div class="container ">
+        <div class="row g-2">
+            <!-- Profile Details -->
+            <div class="col-12  ">
+                <div class="card shadow-sm mb-1 " style="border-radius: 12px; overflow: hidden;">
+                    <div class="d-flex flex-wrap align-items-center justify-content-between p-4 bg-light border-primary">
+                        <!-- Profile Picture -->
+                        <div class="profile-image me-4 ">
+                            {% if user.profile.profile_image %}
+                                <img src="{{ user.profile.profile_image.url }}" alt="Profile Image" 
+                                    class="img-fluid border " 
+                                    style="width: 120px; height: 120px; object-fit: cover; border-radius: 50%;">
+                            {% else %}
+                                <div class="placeholder d-flex align-items-center justify-content-center text-secondary" 
+                                    style="width: 120px; height: 120px; background-color: #e9ecef; border-radius: 50%; font-size: 1.2rem;">
+                                    No Image
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- User Details -->
+                        <div class="details flex-grow-1">
+                            <div class="row g-3">
+                                <!-- Left Column -->
+                                <div class="col-md-6">
+                                    <p class="mb-2 text-muted">
+                                        <strong class="">First Name:</strong> {{ user.first_name }}
+                                    </p>
+                                    <p class="mb-2 text-muted">
+                                        <strong class="">Last Name:</strong> {{ user.last_name }}
+                                    </p>
+                                    <p class="mb-2 text-muted">
+                                        <strong class="text-">Username:</strong> {{ user.username }}
+                                    </p>
+                                </div>
+                                <!-- Right Column -->
+                                <div class="col-md-6">
+                                    <p class="mb-2 text-muted">
+                                        <strong class="">Joined:</strong> {{ user.date_joined }}
+                                    </p>
+                                    <p class="mb-2 text-muted">
+                                        <strong class="">Email:</strong> {{ user.email }}
+                                    </p>
+                                    <p class="mb-2 text-muted">
+                                        <strong class="">Phone:</strong>
+                                        {% if user.profile.phone_number %}{{ user.profile.phone_number }}{% else %}N/A{% endif %}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="actions ms-4 d-flex flex-column gap-2">
+                           <form method="POST" action="{% url 'toggle_user_status' %}">
+                                {% csrf_token %}  
+                                {% if user.is_active %}
+                                <input type="hidden" name="user_id" value="{{user.id}}">
+                                <input type="hidden" name="status" value="inactive">
+                                <button class="btn btn-outline-warning btn-sm ">Make Inactive</button>
+                                {% else %}
+                                <input type="hidden" name="user_id" value="{{user.id}}">
+                                <input type="hidden" name="status" value="active">
+                                <button class="btn btn-outline-success btn-sm ">Make Active</button>
+                                {% endif %}
+                            </form>
+                            <button class="btn btn-outline-danger btn-sm ">Delete</button>
+                            <button class="btn btn-outline-primary btn-sm ">Chat</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabs for Other Sections -->
+            <div class="col-8">
+                <div class="card shadow-sm">
+                    <div class="card-header border-0 pb-0">
+                        <ul class="nav nav-tabs card-header-tabs" id="userDetailsTabs" role="tablist">
+                            <li class="nav-item">
+                                <button class="nav-link active" id="teams-tab" data-bs-toggle="tab" data-bs-target="#teams" type="button" role="tab" aria-controls="teams" aria-selected="true">Teams</button>
+                            </li>
+                            <li class="nav-item">
+                                <button class="nav-link" id="projects-tab" data-bs-toggle="tab" data-bs-target="#projects" type="button" role="tab" aria-controls="projects" aria-selected="false">Projects</button>
+                            </li>
+                            <li class="nav-item">
+                                <button class="nav-link" id="tasks-tab" data-bs-toggle="tab" data-bs-target="#tasks" type="button" role="tab" aria-controls="tasks" aria-selected="false">Tasks</button>
+                            </li>
+                            <li class="nav-item">
+                                <button class="nav-link" id="activity-log-tab" data-bs-toggle="tab" data-bs-target="#activity-log" type="button" role="tab" aria-controls="activity-log" aria-selected="false">Activity Log</button>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="card-body">
+                        <div class="tab-content" id="userDetailsTabContent">
+                            <!-- Teams Tab -->
+                            <div class="tab-pane fade show active" id="teams" role="tabpanel" aria-labelledby="teams-tab">
+                                {% if teams %}
+                                    <ul class="list-group">
+                                        {% for team in teams %}
+                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                <span><strong>{{ team.name }}</strong></span>
+                                                <small class="text-muted">{{ team.description }}</small>
+                                            </li>
+                                        {% endfor %}
+                                    </ul>
+                                {% else %}
+                                    <p class="text-muted">No teams assigned.</p>
+                                {% endif %}
+                            </div>
+
+                            <!-- Projects Tab -->
+                            <div class="tab-pane fade" id="projects" role="tabpanel" aria-labelledby="projects-tab">
+                                {% if projects %}
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered table-hover">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>Name</th>
+                                                    <th>Start Date</th>
+                                                    <th>End Date</th>
+                                                    <th>Status</th>
+                                                    <th>Progress</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for project in projects %}
+                                                <tr>
+                                                    <td>{{ project.name }}</td>
+                                                    <td>{{ project.start_date }}</td>
+                                                    <td>{{ project.end_date }}</td>
+                                                    <td>{{ project.status }}</td>
+                                                    <td>
+                                                        <div class="progress" style="height: 20px;">
+                                                            <div class="progress-bar" role="progressbar" style="width: {{ project.progress }}%;" aria-valuenow="{{ project.progress }}" aria-valuemin="0" aria-valuemax="100">{{ project.progress }}%</div>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                {% else %}
+                                    <p class="text-muted">No projects assigned.</p>
+                                {% endif %}
+                            </div>
+
+                            <!-- Tasks Tab -->
+                            <div class="tab-pane fade" id="tasks" role="tabpanel" aria-labelledby="tasks-tab">
+                                {% if tasks %}
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered table-hover">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>Name</th>
+                                                    <th>Project</th>
+                                                    <th>Status</th>
+                                                    <th>Start Date</th>
+                                                    <th>End Date</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for task in tasks %}
+                                                <tr>
+                                                    <td>{{ task.name }}</td>
+                                                    <td>{{ task.project.name }}</td>
+                                                    <td>{{ task.get_status_display }}</td>
+                                                    <td>{{ task.start_date }}</td>
+                                                    <td>{{ task.end_date }}</td>
+                                                </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                {% else %}
+                                    <p class="text-muted">No tasks assigned.</p>
+                                {% endif %}
+                            </div>
+
+                            <!-- Activity Log Tab -->
+                           
+                            <div class="tab-pane fade" id="activity-log" role="tabpanel" aria-labelledby="activity-log-tab">
+                                <div class="mb-3 d-flex gap-2 w-50">
+                                    <input type="date" id="startDate" class="form-control" placeholder="Start date">
+                                    <input type="date" id="endDate" class="form-control" placeholder="End date">
+                                    <button id="filterDateBtn" class="btn btn-primary">Filter</button>
+                                </div>
+                                {% if activities %}
+                                    <ul class="list-group" id="activityList">
+                                        {% for activity in activities %}
+                                           <li class="list-group-item" data-date="{{ activity.timestamp|date:'Y-m-d\TH:i:s' }}">
+                                                <div class="d-flex justify-content-between">
+                                                    <span class="w-50">{{ activity.activity_description }}</span>
+                                                    <small class="text-muted">{{ activity.timestamp }}</small>
+                                                </div>
+                                            </li>
+
+                                        {% endfor %}
+                                    </ul>
+                                {% else %}
+                                    <p class="text-muted">No activity log available for this user.</p>
+                                {% endif %}
+                            </div>
+
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Edit User Form -->
+            <div class="col-4">         
+                 <h1>Performance</h1>
+            </div>
+        </div>
+    </div>
+
+
+    
+    <!--  filter user activity -->
+    <script>
+        $(document).ready(function () {
+            $("#filterDateBtn").on("click", function () {
+                var startDate = $("#startDate").val();
+                var endDate = $("#endDate").val();
+
+                console.log("Start Date: ", startDate, " End Date: ", endDate); // Debug
+
+                if (!startDate && !endDate) {
+                    console.log("No dates provided, showing all activities.");
+                    $("#activityList .list-group-item").show(); // Show all if no filter
+                    return;
+                }
+
+                var start = startDate ? new Date(startDate) : null;
+                var end = endDate ? new Date(endDate) : null;
+
+                $("#activityList .list-group-item").each(function () {
+                    var activityDate = new Date($(this).data("date"));
+                    console.log("Activity Date: ", activityDate); // Debug
+
+                    if ((!start || activityDate >= start) && (!end || activityDate <= end)) {
+                        $(this).show();
+                    } else {
+                        $(this).hide();
+                    }
+                });
+            });
+        });
+
+    </script>
+      {% comment %} user active inactive toggle {% endcomment %}
+    <script>
+        $(document).ready(function () {
+            $('#user-status-toggle').on('click', function () {
+                const button = $(this);
+                const userId = button.data('user-id');
+                const currentStatus = button.data('status');
+
+                // Determine the next status
+                const nextStatus = currentStatus === 'active' ? 'inactive' : 'active';
+
+                // Send an AJAX request to toggle the status
+                $.ajax({
+                    url: '/toggle_user_status/', // Replace with your actual URL
+                    type: 'POST',
+                    data: {
+                        user_id: userId,
+                        status: nextStatus,
+                        csrfmiddlewaretoken: '{{ csrf_token }}' // Django CSRF token
+                    },
+                    success: function (response) {
+                        // Update the button text, class, and data attribute
+                        if (nextStatus === 'active') {
+                            button
+                                .removeClass('btn-danger')
+                                .addClass('btn-success')
+                                .text('Make Inactive')
+                                .data('status', 'active');
+                        } else {
+                            button
+                                .removeClass('btn-success')
+                                .addClass('btn-danger')
+                                .text('Make Active')
+                                .data('status', 'inactive');
+                        }
+                    },
+                    error: function () {
+                        alert('An error occurred. Please try again.');
+                    }
+                });
+            });
+        });
+    </script>
+{% endblock %}

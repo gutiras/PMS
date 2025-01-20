@@ -1,0 +1,22 @@
+# Python-related files
+__pycache__/
+*.py[cod]
+*.so
+
+# Virtual environment
+venv/
+ENV/
+.env/
+*.env
+
+# Django-related
+db.sqlite3
+/media/
+*.log
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+
+.codegpt

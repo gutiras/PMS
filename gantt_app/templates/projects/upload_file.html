@@ -1,0 +1,237 @@
+
+{% extends 'home.html' %}
+{% block title %}Projects{% endblock %}
+{% block content %}
+    <style>
+    #contextMenu {
+        z-index: 1000;
+    }
+
+    .file-item {
+        cursor: pointer;
+    }
+</style>
+
+
+    <div class="container">
+        <h2 class="my-4">File Manager</h2>
+
+        <!-- Add Folder -->
+        <form method="POST" action="{% url 'file_manager' project.id %}">
+            {% csrf_token %}
+            <input type="text" name="folder_name" placeholder="New Folder Name" class="form-control mb-2">
+            <button type="submit" class="btn btn-primary">Add Folder</button>
+        </form>
+
+        <!-- File Upload -->
+        <form method="POST" enctype="multipart/form-data" action="{% url 'file_manager' project.id %}">
+            {% csrf_token %}
+            <input type="file" name="file" class="form-control mb-2">
+            <button type="submit" class="btn btn-primary">Upload File</button>
+        </form>
+
+        <div class="file-manager mt-4">
+            <!-- File Listings -->
+            {% for folder in folders %}
+                <div class="file-item">
+                    <span>{{ folder.name }}</span>
+                   
+                </div>
+            {% endfor %}
+
+            {% for file in files %}
+                <div class="file-item">
+                    <span>{{ file.name }}</span>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Context Menu -->
+    <div id="contextMenu" class="dropdown-menu" style="display: none; position: absolute;">
+        <a id="contextRename" class="dropdown-item" href="#">Rename</a>
+        <a id="contextMove" class="dropdown-item" href="#">Move</a>
+        <a id="contextDelete" class="dropdown-item" href="#">Delete</a>
+    </div>
+    <!-- Rename Modal -->
+    <div class="modal" id="renameModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Rename</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="text" id="newName" class="form-control" placeholder="New Name">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <form id="renameForm" method="POST" action="{% url 'file_manager' project.id %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="old_name" id="oldName"> <!-- will hold current name -->
+                        <input type="hidden" name="new_name" id="newNameHidden"> <!-- added new_name -->
+                        <input type="hidden" name="rename" value="true">
+                        <button type="submit" class="btn btn-primary">Rename</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Move Modal -->
+    <div class="modal" id="moveModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Move</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <label for="targetFolder">Select Target Folder</label>
+                    <select id="targetFolder" class="form-control">
+                        <option value="" disabled selected>Select a folder</option>
+                        {% for folder in folders %}
+                            <option value="{{ folder.name }}">{{ folder.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <form id="moveForm" method="POST" action="{% url 'file_manager' project.id %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="file_or_folder" id="moveName">
+                        <input type="hidden" name="move" value="true">
+                        <input type="hidden" name="target_folder" id="targetFolderHidden">
+                        <button type="submit" class="btn btn-primary">Move</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Modal -->
+    <div class="modal" id="deleteModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Delete</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to delete this item?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">No</button>
+                    <form id="deleteForm" method="POST" action="{% url 'file_manager' project.id %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="file_or_folder" id="deleteName">
+                        <input type="hidden" name="delete" value="true">
+                        <button type="submit" class="btn btn-danger">Delete</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- JavaScript to handle dynamic renaming -->
+    <script>
+        document.querySelectorAll('.rename-btn').forEach(function(button) {
+            button.addEventListener('click', function() {
+                const name = this.dataset.name;
+                document.getElementById('oldName').value = name; // Set old name in hidden field
+                document.getElementById('newName').value = name; // Set the initial value to old name in the input field
+                new bootstrap.Modal(document.getElementById('renameModal')).show();
+            });
+        });
+
+        // Listen for the form submission
+        const renameForm = document.getElementById('renameForm');
+        renameForm.addEventListener('submit', function(event) {
+            const newNameInput = document.getElementById('newName');
+            const newNameHiddenInput = document.getElementById('newNameHidden');
+            const oldNameInput = document.getElementById('oldName');
+
+            const newName = newNameInput.value;  // Get the new name
+            const oldName = oldNameInput.value;  // Get the old name
+
+            if (!newName || newName.trim() === "") {
+                event.preventDefault();  // Prevent submission if new name is empty
+                alert('Please enter a new name for the file.');
+            } else {
+                newNameHiddenInput.value = newName;  // Set the new name in the hidden input field
+            }
+        });
+    </script>
+    <!-- JavaScript to Set the Move Information -->
+    <script>
+        document.querySelectorAll('.move-btn').forEach(function(button) {
+            button.addEventListener('click', function() {
+                const name = this.dataset.name;  // Get the name of the file/folder
+                document.getElementById('moveName').value = name;  // Set the name of the file/folder being moved
+                new bootstrap.Modal(document.getElementById('moveModal')).show();  // Open the modal
+            });
+        });
+
+        // When the user submits the Move form
+        document.getElementById('moveForm').addEventListener('submit', function(event) {
+            const targetFolder = document.getElementById('targetFolder').value;
+            const targetFolderHidden = document.getElementById('targetFolderHidden');
+
+            if (!targetFolder) {
+                event.preventDefault();  // Prevent form submission if no target folder selected
+                alert('Please select a target folder.');
+            } else {
+                targetFolderHidden.value = targetFolder;  // Set the selected target folder
+            }
+        });
+    </script>
+    <script>
+    const contextMenu = document.getElementById('contextMenu');
+    let currentItem = null; // Track the file/folder item associated with the context menu
+
+    document.addEventListener('contextmenu', (event) => {
+        const fileItem = event.target.closest('.file-item');
+        if (fileItem) {
+            event.preventDefault();
+
+            // Show context menu
+            contextMenu.style.top = `${event.pageY}px`;
+            contextMenu.style.left = `${event.pageX}px`;
+            contextMenu.style.display = 'block';
+            currentItem = fileItem;
+        } else {
+            contextMenu.style.display = 'none';
+        }
+    });
+
+    // Hide the context menu on click elsewhere
+    document.addEventListener('click', () => {
+        contextMenu.style.display = 'none';
+    });
+
+    // Rename action
+    document.getElementById('contextRename').addEventListener('click', () => {
+        const itemName = currentItem.querySelector('span').textContent;
+        document.getElementById('oldName').value = itemName;
+        document.getElementById('newName').value = itemName;
+        new bootstrap.Modal(document.getElementById('renameModal')).show();
+    });
+
+    // Move action
+    document.getElementById('contextMove').addEventListener('click', () => {
+        const itemName = currentItem.querySelector('span').textContent;
+        document.getElementById('moveName').value = itemName;
+        new bootstrap.Modal(document.getElementById('moveModal')).show();
+    });
+
+    // Delete action
+    document.getElementById('contextDelete').addEventListener('click', () => {
+        const itemName = currentItem.querySelector('span').textContent;
+        document.getElementById('deleteName').value = itemName;
+        new bootstrap.Modal(document.getElementById('deleteModal')).show();
+    });
+</script>
+
+{% endblock %}

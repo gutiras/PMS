@@ -1,0 +1,337 @@
+{% extends 'home.html' %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<!-- Optional Custom Styles -->
+<style>
+    .nav-link {
+        font-weight: 400; /* Adding some boldness for clarity */
+        transition: transform 0.2s; /* Smooth scale-up on hover */
+    }
+    
+    .nav-link:hover {
+        transform: scale(1.05); /* Hover effect: slightly larger size */
+        border-radius: 2px; /* Rounded corners */
+    }
+    
+    .nav-pills .nav-link.active {
+        background-color: #007bff; /* Custom active background */
+        color: white; /* White text for active item */
+        border-color: #007bff; /* Border color change */
+    }
+    
+    /* Icon space adjustments */
+    .nav-link i {
+        margin-right: 4px;
+    }
+</style>
+<!-- Breadcrumb -->
+<div class="">
+    {% block breadcrumb %}
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a class="text-decoration-none" href="{% url 'home' %}">Home</a></li>
+            <li class="breadcrumb-item active" aria-current="page"> Dashboard</li>
+        </ol>
+    </nav>
+    {% endblock %}
+</div>
+{% if user.role != 'viewer' %}
+    <div class="d-flex justify-content-end align-items-center mb-2">
+        <div class="text-center">
+            <a href="{% url 'report_dashboard' %}" class="btn btn-sm btn-outline-primary">View Reports</a>
+        </div>
+    </div>
+{% endif %}
+ 
+<div class="container">
+    <div class="row mt-4">
+        <!-- Tabs for switching between charts -->
+        <div class="col-md-12">
+            <ul class="nav nav-pills justify-content-center" id="chartTabs" role="tablist">
+                <!-- Project Status with Hover Animation -->
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link btn-sm btn-outline-info {% if active_tab == 'project_status' %}active{% endif %}" 
+                    id="projectStatusTab" 
+                    data-bs-toggle="pill" 
+                    href="#projectStatus" 
+                    role="tab" 
+                    aria-controls="projectStatus" 
+                    aria-selected="{% if active_tab == 'project_status' %}true{% else %}false{% endif %}" 
+                    data-bs-toggle="tooltip" data-bs-placement="top" title="View Project Status">
+                        <i class="fas fa-project-diagram"></i> Project Status
+                    </a>
+                </li>
+
+                <!-- Tasks by Status with Hover Animation -->
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link btn-sm btn-outline-info {% if active_tab == 'tasks_by_status' %}active{% endif %}" 
+                    id="tasksByStatusTab" 
+                    data-bs-toggle="pill" 
+                    href="#tasksByStatus" 
+                    role="tab" 
+                    aria-controls="tasksByStatus" 
+                    aria-selected="{% if active_tab == 'tasks_by_status' %}true{% else %}false{% endif %}" 
+                    data-bs-toggle="tooltip" data-bs-placement="top" title="View Tasks by Status">
+                        <i class="fas fa-tasks"></i> Tasks by Status
+                    </a>
+                </li>
+
+                <!-- Team Members Task Contribution with Hover Animation -->
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link btn-sm btn-outline-success {% if active_tab == 'team_contribution' %}active{% endif %}" 
+                    id="taskContributionTab" 
+                    data-bs-toggle="pill" 
+                    href="#taskContribution" 
+                    role="tab" 
+                    aria-controls="taskContribution" 
+                    aria-selected="{% if active_tab == 'team_contribution' %}true{% else %}false{% endif %}" 
+                    data-bs-toggle="tooltip" data-bs-placement="top" title="View Team Members Task Contribution">
+                        <i class="fas fa-users"></i> Team Members Task Contribution
+                    </a>
+                </li>
+
+                <!-- Project Progress with Hover Animation -->
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link btn-sm btn-outline-warning {% if active_tab == 'progress' %}active{% endif %}" 
+                    id="progressTab" 
+                    data-bs-toggle="pill" 
+                    href="#progress" 
+                    role="tab" 
+                    aria-controls="progress" 
+                    aria-selected="{% if active_tab == 'progress' %}true{% else %}false{% endif %}" 
+                    data-bs-toggle="tooltip" data-bs-placement="top" title="View Project Progress">
+                        <i class="fas fa-chart-line"></i> Project Progress
+                    </a>
+                </li>
+
+                <!-- Remaining Days with Hover Animation -->
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link btn-sm btn-outline-danger {% if active_tab == 'remaining_days' %}active{% endif %}" 
+                    id="remainingDaysTab" 
+                    data-bs-toggle="pill" 
+                    href="#remainingDays" 
+                    role="tab" 
+                    aria-controls="remainingDays" 
+                    aria-selected="{% if active_tab == 'remaining_days' %}true{% else %}false{% endif %}" 
+                    data-bs-toggle="tooltip" data-bs-placement="top" title="View Remaining Days">
+                        <i class="fas fa-calendar-day"></i> Remaining Days
+                    </a>
+                </li>
+
+                <!-- Delayed Projects with Hover Animation -->
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link btn-sm btn-outline-secondary {% if active_tab == 'delayed_projects' %}active{% endif %}" 
+                    id="delayedProjectsTab" 
+                    data-bs-toggle="pill" 
+                    href="#delayedProjects" 
+                    role="tab" 
+                    aria-controls="delayedProjects" 
+                    aria-selected="{% if active_tab == 'delayed_projects' %}true{% else %}false{% endif %}" 
+                    data-bs-toggle="tooltip" data-bs-placement="top" title="View Delayed Projects">
+                        <i class="fas fa-clock"></i> Delayed Projects
+                    </a>
+                </li>
+
+                {% comment %} <!-- Effort Accuracy with Hover Animation -->
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link btn-sm btn-outline-info {% if active_tab == 'effort_accuracy' %}active{% endif %}" 
+                    id="effortAccuracyTab" 
+                    data-bs-toggle="pill" 
+                    href="#effortAccuracy" 
+                    role="tab" 
+                    aria-controls="effortAccuracy" 
+                    aria-selected="{% if active_tab == 'effort_accuracy' %}true{% else %}false{% endif %}" 
+                    data-bs-toggle="tooltip" data-bs-placement="top" title="View Effort Accuracy">
+                        <i class="fas fa-balance-scale"></i> Effort Accuracy
+                    </a>
+                </li> {% endcomment %}
+
+                <!-- Completed Tasks with Hover Animation -->
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link btn-sm btn-outline-success {% if active_tab == 'completed_tasks' %}active{% endif %}" 
+                    id="completedTasksTab" 
+                    data-bs-toggle="pill" 
+                    href="#completedTasks" 
+                    role="tab" 
+                    aria-controls="completedTasks" 
+                    aria-selected="{% if active_tab == 'completed_tasks' %}true{% else %}false{% endif %}" 
+                    data-bs-toggle="tooltip" data-bs-placement="top" title="View Completed Tasks">
+                        <i class="fas fa-check"></i> Completed Tasks
+                    </a>
+                </li>
+
+                <!-- Task Allocation by Team with Hover Animation -->
+                <li class="nav-item" role="presentation">
+                    <a class="nav-link btn-sm btn-outline-primary {% if active_tab == 'task_allocation' %}active{% endif %}" 
+                    id="taskAllocationTab" 
+                    data-bs-toggle="pill" 
+                    href="#taskAllocation" 
+                    role="tab" 
+                    aria-controls="taskAllocation" 
+                    aria-selected="{% if active_tab == 'task_allocation' %}true{% else %}false{% endif %}" 
+                    data-bs-toggle="tooltip" data-bs-placement="top" title="View Task Allocation by Team">
+                        <i class="fas fa-user-tag"></i> Task Allocation by Team
+                    </a>
+                </li>
+            </ul>
+
+            <div class="tab-content" id="chartTabsContent">
+                <!-- Project Status Content -->
+                <div class="tab-pane fade {% if active_tab == 'project_status' %}show active{% endif %}" 
+                    id="projectStatus" 
+                    role="tabpanel" 
+                    aria-labelledby="projectStatusTab">
+                    <div class="card mb-3 shadow-sm">
+                        <div class="card-body">
+                            {{ project_status_chart|safe }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tasks by Status Content -->
+                <div class="tab-pane fade {% if active_tab == 'tasks_by_status' %}show active{% endif %}" 
+                    id="tasksByStatus" 
+                    role="tabpanel" 
+                    aria-labelledby="tasksByStatusTab">
+                    <div class="card mb-3 shadow-sm">
+                        <div class="card-body">
+                            <form method="GET" action="" class="d-flex justify-content-between mb-4">
+                                <div class="form-group col-md-5">
+                                    <select id="project" name="project_id" class="form-control">
+                                        <option value="">--Select a Project--</option>
+                                        {% for project in projects %}
+                                            <option value="{{ project.id }}" {% if project.id == request.GET.project_id %} selected {% endif %}>
+                                                {{ project.name }}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <button type="submit" class="btn btn-outline-success">View</button>
+                                </div>
+                            </form>
+                            {{ project_tasks_chart|safe }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Team Members Task Contribution Content -->
+                <div class="tab-pane fade {% if active_tab == 'team_contribution' %}show active{% endif %}" 
+                    id="taskContribution" 
+                    role="tabpanel" 
+                    aria-labelledby="taskContributionTab">
+                    <div class="card mb-3 shadow-sm">
+                        <div class="card-body">
+                            <form method="GET" action="" class="d-flex justify-content-between mb-4">
+                                <div class="form-group col-md-5">
+                                    <select id="team" name="team_id" class="form-control">
+                                        <option value="">--Select a Team--</option>
+                                        {% for team in teams %}
+                                            <option value="{{ team.id }}" {% if team.id == request.GET.team_id %} selected {% endif %}>
+                                                {{ team.name }}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <button type="submit" class="btn btn-outline-success">View</button>
+                                </div>
+                            </form>
+                            {{ team_contrib_chart|safe }}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Repeat the structure for other charts -->
+                <!-- Project Progress Content -->
+                <div class="tab-pane fade {% if active_tab == 'progress' %}show active{% endif %}" 
+                    id="progress" 
+                    role="tabpanel" 
+                    aria-labelledby="progressTab">
+                    <div class="card mb-3 shadow-sm">
+                        <div class="card-body">
+                            {{ project_progress_chart|safe }}
+                      </div> 
+                     </div>
+                </div>
+
+                <!-- Remaining Days Content -->
+                <div class="tab-pane fade {% if active_tab == 'remaining_days' %}show active{% endif %}" 
+                    id="remainingDays" 
+                    role="tabpanel" 
+                    aria-labelledby="remainingDaysTab">
+                    
+                     <div class="card mb-3 shadow-sm">
+                        <div class="card-body">
+                        {{ remaining_days_chart|safe }}
+                      </div> 
+                     </div>
+                </div>
+
+                <!-- Delayed Projects Content -->
+                <div class="tab-pane fade {% if active_tab == 'delayed_projects' %}show active{% endif %}" 
+                    id="delayedProjects" 
+                    role="tabpanel" 
+                    aria-labelledby="delayedProjectsTab">
+                    
+                     <div class="card mb-3 shadow-sm">
+                        <div class="card-body">
+                          {{ delayed_projects_chart|safe }}
+                      </div> 
+                     </div>
+                </div>
+
+                {% comment %} <!-- Effort Accuracy Content -->
+                <div class="tab-pane fade {% if active_tab == 'effort_accuracy' %}show active{% endif %}" 
+                    id="effortAccuracy" 
+                    role="tabpanel" 
+                    aria-labelledby="effortAccuracyTab">
+                    
+                     <div class="card mb-3 shadow-sm">
+                        <div class="card-body">
+                           {{ effort_accuracy_chart|safe }}
+                      </div> 
+                     </div>
+                </div> {% endcomment %}
+
+                <!-- Completed Tasks Content -->
+                <div class="tab-pane fade {% if active_tab == 'completed_tasks' %}show active{% endif %}" 
+                    id="completedTasks" 
+                    role="tabpanel" 
+                    aria-labelledby="completedTasksTab">
+                   
+                     <div class="card mb-3 shadow-sm">
+                        <div class="card-body">
+                           {{ tasks_completed_chart|safe }}
+                      </div> 
+                     </div>
+                </div>
+
+                <!-- Task Allocation by Team Content -->
+                <div class="tab-pane fade {% if active_tab == 'task_allocation' %}show active{% endif %}" 
+                    id="taskAllocation" 
+                    role="tabpanel" 
+                    aria-labelledby="taskAllocationTab">
+                    
+                     <div class="card mb-3 shadow-sm">
+                        <div class="card-body">
+                            {{ team_task_allocation_chart|safe }}
+                      </div> 
+                     </div>
+                </div>
+           
+                <!-- For Project Progress, Remaining Days, etc. -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Bootstrap Tooltip Initialization -->
+<script>
+    var tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+    var tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+</script>
+
+
+
+{% endblock %}

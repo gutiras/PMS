@@ -1,0 +1,18 @@
+{% extends 'home.html' %}
+
+{% block content %}
+<h2>Notifications</h2>
+<ul>
+    {% for notification in notifications %}
+    <li>
+        {{ notification.message }} - {{ notification.timestamp|date:"d M Y, H:i" }}
+        <form method="post" action="{% url 'mark_notification_read' notification.id %}">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-sm btn-primary">Mark as Read</button>
+        </form>
+    </li>
+    {% empty %}
+    <li>No new notifications</li>
+    {% endfor %}
+</ul>
+{% endblock %}
