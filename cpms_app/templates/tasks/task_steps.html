@@ -1,0 +1,516 @@
+{% extends 'home.html' %}
+
+{% block content %}
+    <style>
+        .issue-card {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .issue-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+        }
+
+        .btn-group-vertical .btn {
+            transition: all 0.2s ease;
+        }
+
+        .form-control {
+            border-radius: 0.5rem;
+        }
+
+        .badge {
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+        .taskRow:hover {
+            background-color: #f8f9fa;
+        }
+
+        .status-form .form-select {
+            width: auto;
+            min-width: 120px;
+        }
+
+        .modal-issues-list .card {
+            transition: transform 0.2s;
+        }
+
+        .modal-issues-list .card:hover {
+            transform: translateX(5px);
+        }
+
+        #issuesModal .resolved {
+            opacity: 0.7;
+            border-left: 4px solid #28a745;
+        }
+
+        #issuesModal .unresolved {
+            border-left: 4px solid #dc3545;
+        }
+
+        #taskSearch {
+            max-width: 400px;
+        }
+
+        #stepsPagination {
+            max-width: 300px;
+            margin: 20px auto;
+        }
+        .table-dark {
+            --bs-table-bg: #2b3035;
+            --bs-table-striped-bg: #343a40;
+        }
+
+        .select-status {
+            width: 150px;
+            transition: all 0.3s ease;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23666' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+        }
+
+        .select-status:hover {
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+            transform: translateY(-1px);
+        }
+
+        .btn-icon {
+            width: 40px;
+            height: 40px;
+            padding: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-icon:hover {
+            transform: translateY(-2px);
+        }
+
+        .taskRow:hover {
+            background-color: rgba(13, 110, 253, 0.05);
+        }
+
+        .text-truncate {
+            max-width: 300px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+    </style>
+      <!-- Breadcrumb Navigation -->
+    <div class=" bg-light">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a class="text-decoration-none" href="{% url 'home' %}">Home</a></li>
+                <li class="breadcrumb-item"><a class="text-decoration-none" href="{% url 'project_list' %}">Projects</a></li>
+                <li class="breadcrumb-item"><a class="text-decoration-none" href="{% url 'milestone_list' task.milestone.project.id%}">Milestones</a></li>
+                <li class="breadcrumb-item"><a class="text-decoration-none" href="{% url 'task_list' task.milestone.id%}">Tasks</a></li>
+                <li class="breadcrumb-item active">Steps</li>
+            </ol>
+        </nav>
+    </div>
+    <!-- Message Handling Section -->
+    {% if messages %}
+        <!-- Iterate over messages -->
+        {% for message in messages %}
+            <!-- Check if message tag is 'danger' (error message) -->
+            {% if message.tags == 'danger' %}
+                <!-- Modal for Error Message -->
+                <div class="modal fade" id="errorModal" tabindex="-1" aria-labelledby="errorModalLabel" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="errorModalLabel">Error</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                {{ message }}
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <!-- Normal Alerts for Non-Error Messages -->
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+     <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb bg-light p-3 rounded shadow-sm">
+          
+                <!-- Project with tooltip for start and end date -->
+                <li class="breadcrumb-item" 
+                    data-bs-toggle="tooltip" 
+                    data-bs-placement="top" 
+                    title="Start: {{ task.milestone.project.start_date }} | End: {{ task.milestone.project.end_date }}">
+                    <i class="bi bi-folder me-2"></i>{{ task.milestone.project.name }}
+                </li>
+                <!-- Milestone with tooltip for start and end date -->
+                <li class="breadcrumb-item" 
+                    data-bs-toggle="tooltip" 
+                    data-bs-placement="top" 
+                    title="Start: {{ task.milestone.start_date }} | End: {{ task.milestone.end_date }}">
+                    <i class="bi bi-signpost me-2"></i>{{ task.milestone.name }}
+                </li>
+                <li class="breadcrumb-item" 
+                    data-bs-toggle="tooltip" 
+                    data-bs-placement="top" 
+                    title="Start: {{ task.start_date }} | End: {{ task.end_date }}">
+                    <i class="bi bi-signpost me-2"></i>{{ task.name }}
+                </li>
+         
+        </ol>
+        </nav>
+    <div class="mx-5">
+        
+        <form id="bulkForm" method="post" action="{% url 'bulk_step_actions' task.id %}">
+            {% csrf_token %}
+            <!-- Actions Bar -->
+           
+           
+            <div class="d-flex justify-content-between align-items-center  mb-4 p-3 rounded-3 shadow-sm">   
+                <div class="d-flex align-items-center gap-4">
+                    <h4 class="mb-0 ">  <i class="bi bi-list-task me-2"></i>Step Manager</h4>
+                    <span class="badge bg-white text-primary fs-6">{{ steps.all|length }} steps</span>
+                </div> 
+                <div class="d-flex gap-3 align-items-center">           
+                    <div class=" mx-3">
+                        <input type="text" class="form-control form-control-sm" id="taskSearch" placeholder="Search tasks..." onkeyup="filterTasks()">
+                    </div>
+                    <div class="">
+                        <div class="d-flex justify-content-between">
+                            <select id="bulkActionSelect" name="bulk_action" class="form-select form-select-sm"
+                                {% if request.user not in task.assigned_to.all and request.user.role != "admin" %}disabled{% endif %}>
+                                <option value="">-- Action --</option>
+                                <option value="delete_steps">Delete Selected</option>
+                                <option value="edit_steps">Edit Selected</option>
+                            </select>
+                            <button type="button" id="performBulkAction" class="btn btn-sm btn-primary" 
+                                {% if request.user not in task.assigned_to.all and request.user.role != "admin" %}disabled{% endif %}>
+                                Apply
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        
+            <div class="container my-4">
+               <table class="table table-hover align-middle mb-0">
+                        <thead class="table-primary">
+                            <tr>
+                                <th style="width: 40px;">
+                                    <input form="bulkForm" type="checkbox" id="selectAll" class="form-check-input fs-5">
+                                </th>
+                                <th class="ps-4">Step Name</th>
+                                <th>Description</th>
+                                <th class="text-center">Order</th>
+                                <th>Status</th>
+                                <th class="text-end pe-4">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="taskTableBody">
+                        
+                            {% for step in steps %}
+                            
+                            <tr class="taskRow align-middle">
+                                <td>
+                                    <input form="bulkForm" type="checkbox" class="form-check-input selectStep" 
+                                        name="step_ids" value="{{ step.id }}">
+                                </td>
+                                <td class="ps-4">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <i class="bi bi-list-task text-primary"></i>
+                                        <span class="fw-semibold">{{ step.name }}</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <p class="text-muted mb-0 text-truncate" style="max-width: 300px;">
+                                        {{ step.description|default:"No description" }}
+                                    </p>
+                                </td>
+                                <td class="text-center">
+                                    <span class="text-muted mb-0   px-3 py-2">
+                                        {{ step.order }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if request.user in task.assigned_to.all or request.user.role == "admin" %}
+                                    <form method="post" action="{% url 'manage_task_steps' task.id %}">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="step_id" value="{{ step.id }}">
+                                        <select name="status" onchange="this.form.submit()" 
+                                                class="form-select select-status border-0 shadow-sm py-2">
+                                            {% for key, value in step.STATUS_CHOICES %}
+                                            <option value="{{ key }}" {% if key == step.status %}selected{% endif %}
+                                                    class="text-{% if key == 'completed' %}success{% elif key == 'in_progress' %}warning{% else %}muted{% endif %}">
+                                                {{ value }}
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                    </form>
+                                    {% else %}
+                                    <span class="badge bg-{% if step.status == 'completed' %}success{% elif step.status == 'in_progress' %}warning{% else %}secondary{% endif %}">
+                                        {{ step.get_status_display }}
+                                    </span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end pe-4">
+                                    <div class="d-flex align-items-center gap-2 justify-content-end">
+                                        <button type="button" class="btn btn-primary btn-icon" 
+                                                data-bs-toggle="modal" data-bs-target="#issuesModal{{ step.id }}">
+                                            <i class="bi bi-flag"></i>
+                                            <span class="badge bg-white text-primary position-absolute top-0 start-100 translate-middle">
+                                                {{ step.issues.all|length }}
+                                            </span>
+                                        </button>
+                                        {% if request.user in task.assigned_to.all or request.user.role == "admin" %}
+                                        <a href="{% url 'edit_task_step' step.id 0 %}" class="btn btn-outline-warning btn-icon">
+                                            <i class="bi bi-pencil-square"></i>
+                                        </a>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+
+                                 <!-- Issues Modal -->
+                            <div class="modal fade" id="issuesModal{{ step.id }}" tabindex="-1">
+                                <div class="modal-dialog modal-xl">
+                                    <div class="modal-content">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title">Issues for {{ step.name }}</h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                        </div>
+                                    <div class="modal-body">
+                                            <div class="issues-list mb-4">
+                                                {% for issue in step.issues.all %}
+                                                <div class="card mb-3 {% if issue.resolved %}border-success bg-success bg-opacity-10{% else %}border-danger bg-danger bg-opacity-10{% endif %} shadow-sm">
+                                                    <div class="card-body">
+                                                        <div class="d-flex justify-content-between align-items-start gap-3">
+                                                            <div class="flex-grow-1">
+                                                                <div class="d-flex align-items-center gap-2 mb-2">
+                                                                    <h5 class=" small mb-0 fw-semi bold">
+                                                                        <i class="bi {% if issue.resolved %}bi-check-circle-fill text-success{% else %}bi-exclamation-triangle-fill text-danger{% endif %} me-2"></i>
+                                                                        {{ issue.description }}
+                                                                    </h5>
+                                                                </div>
+                                                                
+                                                                <div class="d-flex flex-wrap gap-2 text-muted small">
+                                                                    <span class="badge bg-light text-dark">
+                                                                        <i class="bi bi-person-circle me-1"></i>
+                                                                        {{ issue.reported_by }}
+                                                                    </span>
+                                                                    <span class="badge bg-light text-dark">
+                                                                        <i class="bi bi-clock-history me-1"></i>
+                                                                        {{ issue.reported_at|date:"M d, Y H:i" }}
+                                                                    </span>
+                                                                </div>
+
+                                                                {% if issue.resolved %}
+                                                                <div class="mt-3 bg-white p-3 rounded-2 border">
+                                                                    <div class="d-flex align-items-center gap-2 text-success mb-2">
+                                                                        <i class="bi bi-check2-circle"></i>
+                                                                        <span class="fw-semibold">Resolved Details:</span>
+                                                                    </div>
+                                                                    <div class="small">
+                                                                        <div class="mb-1">
+                                                                            <i class="bi bi-calendar-check me-2"></i>
+                                                                            {{ issue.resolved_at|date:"M d, Y H:i" }}
+                                                                        </div>
+                                                                        <div class="mb-0">
+                                                                            <i class="bi bi-chat-left-text me-2"></i>
+                                                                            <span class="fst-italic">"{{ issue.remark }}"</span>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                                {% endif %}
+                                                            </div>
+
+                                                            <form method="post" action="{% url 'handle_issues' step.id %}" class="d-flex flex-column gap-2">
+                                                                {% csrf_token %}
+                                                                <input type="hidden" name="issue_id" value="{{ issue.id }}">
+                                                               
+                                                                <div class="btn-group-vertical ">
+                                                                    {% if not issue.resolved and request.user in task.assigned_to.all %}
+                                                                    <textarea name="remark" class="form-control form-control-sm" 
+                                                                                placeholder="Enter resolution remarks..." rows="3"
+                                                                                style="min-width: 250px"></textarea>
+                                                                    </div>
+                                                                    <div class="input-group">
+                                                                        
+                                                                    <button type="submit" name="resolve" class="btn btn-primary btn-sm">
+                                                                        <i class="bi bi-check-circle me-2"></i>Resolve
+                                                                    </button>
+                                                                    {% endif %}
+                                                                    
+                                                                    {% if issue.resolved %}
+                                                                    <button type="submit" name="unresolve" class="btn btn-warning btn-sm">
+                                                                        <i class="bi bi-arrow-counterclockwise me-2"></i>Re-open
+                                                                    </button>
+                                                                    {% endif %}
+                                                                    
+                                                                    <button type="submit" name="delete" class="btn btn-danger btn-sm">
+                                                                        <i class="bi bi-trash3 me-2"></i>Delete
+                                                                    </button>
+                                                                </div>
+                                                            </form>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                {% empty %}
+                                                <div class="text-center py-4 bg-light rounded-3">
+                                                    <i class="bi bi-inboxes fs-1 text-muted mb-3"></i>
+                                                    <h5 class="text-muted">No issues reported</h5>
+                                                </div>
+                                                {% endfor %}
+                                            </div>
+
+                                            {% if request.user in task.assigned_to.all %}
+                                            <div class="card border-primary">
+                                                <div class="card-header bg-primary text-white">
+                                                    <i class="bi bi-plus-circle me-2"></i>Report New Issue
+                                                </div>
+                                                <div class="card-body">
+                                                    <form method="post" action="{% url 'handle_issues' step.id %}">
+                                                        {% csrf_token %}
+                                                        <div class="mb-3">
+                                                            <label class="form-label">Issue Description</label>
+                                                            <textarea name="description" class="form-control" 
+                                                                    placeholder="Describe the new issue in detail..." 
+                                                                    rows="3" required></textarea>
+                                                            <div class="form-text">Maximum 500 characters</div>
+                                                        </div>
+                                                        <button type="submit" name="create" class="btn btn-primary">
+                                                            <i class="bi bi-send me-2"></i>Submit New Issue
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+
+                                    </div>
+                                </div>
+                            </div>
+                            {% empty %}
+                            <tr>          
+                                <td colspan="6" class="text-center py-5 bg-light">
+                                    <div class="d-flex flex-column align-items-center">
+                                        <i class="bi bi-inboxes fs-1 text-muted mb-3"></i>
+                                        <h4 class="text-muted mb-2">No steps found</h4>
+                                        <p class="text-muted">Create your first step to get started</p>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+
+                     <div class="d-flex justify-content-center mt-4" id="stepsPagination">
+                        <nav>
+                            <ul class="pagination pagination-sm">
+                                <li class="page-item">
+                                    <button class="page-link" id="prevSteps" onclick="changePage('steps', -1)" disabled>
+                                        <i class="bi bi-chevron-left"></i>
+                                    </button>
+                                </li>
+                                <li class="page-item">
+                                    <button class="page-link" id="nextSteps" onclick="changePage('steps', 1)" disabled>
+                                        <i class="bi bi-chevron-right"></i>
+                                    </button>
+                                </li>
+                            </ul>
+                        </nav>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const bulkForm = document.getElementById('bulkForm');
+            const selectAll = document.getElementById('selectAll');
+            const performBulkAction = document.getElementById('performBulkAction');
+            const bulkActionSelect = document.getElementById('bulkActionSelect');
+            const deleteOption = bulkActionSelect.querySelector('option[value="delete_steps"]');
+            const editOption = bulkActionSelect.querySelector('option[value="edit_steps"]');
+
+            // Function to update action buttons based on selection
+            function updateActionButtons() {
+                const selectedSteps = bulkForm.querySelectorAll('.selectStep:checked');
+                const selectedCount = selectedSteps.length;
+
+                // Enable/disable options based on selection count
+                if (selectedCount === 0) {
+                    // No steps selected: Disable both options
+                    deleteOption.disabled = true;
+                    editOption.disabled = true;
+                    performBulkAction.disabled = true;
+                } else if (selectedCount === 1) {
+                    // One step selected: Enable both options
+                    deleteOption.disabled = false;
+                    editOption.disabled = false;
+                    performBulkAction.disabled = false;
+                } else {
+                    // More than one step selected: Enable only delete option
+                    deleteOption.disabled = false;
+                    editOption.disabled = true;
+                    performBulkAction.disabled = false;
+                }
+            }
+
+            // Select All Checkbox
+            selectAll.addEventListener('click', function(e) {
+                const checkboxes = bulkForm.querySelectorAll('.selectStep');
+                checkboxes.forEach(checkbox => checkbox.checked = e.target.checked);
+                updateActionButtons(); // Update buttons after selection
+            });
+
+            // Individual Checkbox Selection
+            bulkForm.querySelectorAll('.selectStep').forEach(checkbox => {
+                checkbox.addEventListener('change', updateActionButtons);
+            });
+
+            // Bulk Action Handler
+            performBulkAction.addEventListener('click', function() {
+                const action = bulkActionSelect.value;
+                if (!action) {
+                    alert('Please select an action');
+                    return;
+                }
+
+                const selectedSteps = bulkForm.querySelectorAll('.selectStep:checked');
+                if (selectedSteps.length === 0) {
+                    alert('Please select at least one step');
+                    return;
+                }
+
+                if (action === 'delete_steps' && !confirm('Are you sure you want to delete the selected steps?')) {
+                    return;
+                }
+
+                // Submit the form
+                bulkForm.submit();
+            });
+
+            // Initial button state update
+            updateActionButtons();
+        });
+
+
+    </script>
+
+
+
+{% endblock %}
+
+
+
+                        

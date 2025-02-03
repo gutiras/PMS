@@ -1,0 +1,234 @@
+{% extends 'home.html' %}
+{% block title %}Projects{% endblock %}
+{% block content %}
+<style>
+    .timeline {
+        position: relative;
+        margin: 20px 0;
+        padding-left: 40px;
+        border-left: 3px solid #4caf50;
+    }
+
+    .timeline-item {
+        position: relative;
+        margin-bottom: 20px;
+        padding: 10px 20px;
+        background-color: #f9f9f9;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .timeline-item:before {
+        content: "";
+        position: absolute;
+        left: -8px;
+        top: 10px;
+        width: 15px;
+        height: 15px;
+        background-color: #4caf50;
+        border-radius: 50%;
+        border: 3px solid white;
+    }
+
+    .timeline-title {
+        font-size: 1.2rem;
+        font-weight: bold;
+    }
+
+    .timeline-time {
+        font-size: 0.9rem;
+        color: gray;
+    }
+
+    /* Hide the global scrollbar  */
+    html {
+        overflow-y: auto; /* Disable global vertical scrolling */
+        scrollbar-width: none; /* Hide scrollbar for Firefox */
+        -ms-overflow-style: none;
+    }
+    html::-webkit-scrollbar {
+        display: none; /* Hide scrollbar for WebKit browsers */
+    }
+
+</style>
+<!-- Breadcrumb Navigation -->
+<div class="breadcrumb-wrapper  bg-light">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb bg-light rounded px-3">
+            <li class="breadcrumb-item"><a href="{% url 'home' %}" class="text-decoration-none">Home</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'project_list' %}" class="text-decoration-none"> Projects</a></li>
+            <li class="breadcrumb-item active">Project Detail</li>
+        </ol>
+    </nav>
+</div>
+  {% if messages %}
+    <div class="container mt-4">
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    </div>
+{% endif %}
+
+     <div class="container">
+    <div class="card-header bg-light">
+        <h5 class="card-title">
+            {{ project.name }}
+        </h5>
+    </div>
+    <div class="row m-3">
+        <div class="col-12 mb-4">
+            <!-- Horizontal Tabs -->
+            <ul class="nav nav-tabs" role="tablist">
+                 <li class="nav-item">
+                    <a class="nav-link {% if not timeline_active %}active{% endif %}" id="project-details-tab" data-bs-toggle="tab" href="#project-details" role="tab" aria-controls="project-details" aria-selected="true">Project Details</a>
+                </li>
+                 <li class="nav-item">
+                    <a class="nav-link {% if timeline_active %}active{% endif %}" id="timeline-tab" data-bs-toggle="tab" href="#timeline" role="tab" aria-controls="timeline" aria-selected="false">Timeline</a>
+                </li>
+            </ul>
+            
+            <!-- Tab Content -->
+            <div class="tab-content mt-4">
+                <!-- Project Details Tab -->
+                <div class="tab-pane fade   {% if not timeline_active %}show active{% endif %}" id="project-details" role="tabpanel" aria-labelledby="project-details-tab">
+                    <div class="container">
+                        <div class="row">
+                            <!-- Project Details -->
+                            <div class="col-md-4 mb-4">
+                                <h6 class="text-uppercase text-muted">Project Details</h6>
+                                <p><strong>Name:</strong> {{ project.name }}</p>
+                                <p><strong>Start Date:</strong> {{ project.start_date|date:"F j, Y" }}</p>
+                                <p><strong>End Date:</strong> {{ project.end_date|date:"F j, Y" }}</p>
+                            </div>
+
+                            <!-- Assigned Team -->
+                            <div class="col-md-4 mb-4">
+                                <h6 class="text-uppercase text-muted">Assigned Team</h6>
+                                <p>
+                                    <strong>Team Name:</strong>
+                                    {% if project.assigned_team %}
+                                        {{ project.assigned_team.name }}
+                                    {% else %}
+                                        <span class="text-danger">No team assigned</span>
+                                    {% endif %}
+                                </p>
+                                {% if project.assigned_team %}
+                                    <strong>Team Members:</strong>
+                                    <ul class="list-group list-group-flush">
+                                        {% for member in project.assigned_team.members.all %}
+                                            <span class=" ">{{ member.username }}</span>
+                                        {% empty %}
+                                            <li class="list-group-item text-muted px-0">No members assigned.</li>
+                                        {% endfor %}
+                                    </ul>
+                                {% endif %}
+                            </div>
+
+                            <!-- Project Status -->
+                            <div class="col-md-4 mb-4">
+                                <h6 class="text-uppercase text-muted">Project Status</h6>
+                                <p><strong>Status:</strong> 
+                                    {% if project.status %}
+                                        <span class="badge 
+                                            {% if project.status == 'completed' %}
+                                                bg-success
+                                            {% elif project.status == 'in_progress' %}
+                                                bg-warning text-dark
+                                            {% else %}
+                                                bg-secondary
+                                            {% endif %}
+                                        ">{{ project.get_status_display }}</span>
+                                    {% else %}
+                                        <span class="text-muted">No status available</span>
+                                    {% endif %}
+                                </p>
+                                <p><strong>Length:</strong> {{ project.length|default:"N/A" }} days</p>
+                                <p>
+                                    <strong>Days Left:</strong>
+                                    {% if project.days_left > 0 %}
+                                        <span class="text-success">{{ project.days_left }} days left</span>
+                                    {% else %}
+                                        <span class="text-danger">Project is overdue by {{ project.days_left}} days</span>
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="">
+                        <h6 class="text-uppercase text-muted">Project Team Allocations Records</h6>
+                        <div class="timeline">
+                            {% for item in team_history %}
+                            <div class="timeline-item">
+                                <div class="timeline-title">{{ item.team_name }}</div>
+                                <div class="timeline-time">
+                                <strong>Assigned At:</strong> {{ item.assigned_at }}
+                                </div>
+                                <div class="timeline-time">
+                                <strong>Unassigned At:</strong> 
+                                {% if item.unassigned_at == "Current" %}
+                                <span style="color: #4caf50; font-weight: bold;">Current</span>
+                                {% else %}
+                                {{ item.unassigned_at }}
+                                {% endif %}
+                                </div>
+                                <div class="timeline-time">
+                                <strong>Duration:</strong> {{ item.duration }}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Timeline Tab -->
+                <div class="tab-pane fade  {% if timeline_active %}show active{% endif %}" id="timeline" role="tabpanel" aria-labelledby="timeline-tab">
+                    <!-- Filter Form -->
+                   <form method="GET" action="" class="p-3 border rounded shadow-sm bg-light">
+                        <div class="row g-3">
+                            <div class="col-md-3">
+                                <label for="start_date" class="form-label">Start Date:</label>
+                                <input type="date" id="start_date" name="start_date" class="form-control" value="{{ request.GET.start_date }}">
+                            </div>
+
+                            <div class="col-md-3">
+                                <label for="end_date" class="form-label">End Date:</label>
+                                <input type="date" id="end_date" name="end_date" class="form-control" value="{{ request.GET.end_date }}">
+                            </div>
+
+                            <div class="col-md-3">
+                                <label for="activity_type" class="form-label">Activity Type:</label>
+                                <select id="activity_type" name="activity_type" class="form-select">
+                                    <option value="">-- Select Activity Type --</option>
+                                    {% for value, label in activity_type_choices %}
+                                        <option value="{{ value }}" {% if request.GET.activity_type == value %}selected{% endif %}>{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="col-md-3">
+                                <button type="submit" class="btn btn-primary w-100">Filter</button>
+                            </div>
+                        </div>
+                    </form>
+
+                    <!-- Display the graph -->
+                    <div class="w-100">
+                        {{ graph_html|safe }}
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+{% endblock %}

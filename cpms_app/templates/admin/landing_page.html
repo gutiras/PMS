@@ -1,0 +1,168 @@
+{% extends 'home.html' %}
+{% block title %}Home{% endblock %}
+{% block content %}
+<!-- Breadcrumb Navigation -->
+<div class=" bg-light ">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a class="text-decoration-none" href="{% url 'home' %}">Home</a></li>        
+        </ol>
+    </nav>
+</div>
+<div class="container mt-2">
+    <div class="jumbotron text-center">
+        
+        <div class="d-flex justify-content-end">
+            <a href="{% url 'user_create' %}" class="btn btn-outline-primary me-2">
+                <i class="bi bi-person-plus-fill"></i> Create User
+            </a>
+            <a href="{% url 'project_create' %}" class="btn btn-outline-primary me-2">
+                <i class="bi bi-folder-plus"></i> Create Project
+            </a>
+            <a href="{% url 'team_create' %}" class="btn btn-outline-primary">
+                <i class="bi bi-people-fill"></i> Create Team
+            </a>
+        </div>
+    </div>
+
+    <!-- Summary Statistics -->
+<div class="row text-center mt-5">
+    <!-- For Admin -->
+    <!-- Projects Section -->
+    <div class="col-md-4">
+        <div class="card shadow-lg border-0 rounded-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h4 class="card-title text-primary">Total Projects</h4>
+                    <p class="fs-2 fw-bold">{{ total_projects }}</p>
+                </div>
+                
+                <hr>
+                <div class="d-flex justify-content-between">
+                    <span class="fw-semibold text-muted">Ongoing:</span> <span class="text-success fw-bold">{{ ongoing_projects }}</span>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span class="fw-semibold text-muted">Completed:</span> <span class="text-info fw-bold">{{ completed_projects }}</span>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span class="fw-semibold text-muted">Pending:</span> <span class="text-warning fw-bold">{{ pending_projects }}</span>
+                </div>
+
+                <div class="d-flex justify-content-begin">
+                  <a href="{% url 'project_list' %}" class="btn btn-outline-primary btn-sm mt-3   shadow-sm ">
+                    <i class="bi bi-calendar-event"></i></i> View Projects
+                </a>
+                </div>
+            </div>
+          
+        </div>
+    </div>
+
+    <!-- Teams Section -->
+    <div class="col-md-4">
+        <div class="card shadow-lg border-0 rounded-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h4 class="card-title text-primary">Total Teams</h4>
+                    <p class="fs-2 fw-bold">{{ total_teams }}</p> <!-- Adjust size with 'fs-4', 'fs-5', etc. -->
+                </div>
+               
+                <hr>
+                <div class="d-flex justify-content-between">
+                    <span class="fw-semibold text-muted">No Projects Assigned:</span> <span class="text-danger fw-bold">{{ teams_with_no_projects }}</span>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span class="fw-semibold text-muted">More than 2 Projects:</span> <span class="text-success fw-bold">{{ teams_with_more_than_2_projects }}</span>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span class="fw-semibold text-muted">Others:</span> <span class="text-secondary fw-bold">{{ other_teams }}</span>
+                </div>
+                <div class="d-flex justify-content-begin">
+                  <a href="{% url 'team_list' %}" class="btn btn-outline-primary btn-sm mt-3  shadow-sm">
+                    <i class="bi bi-people-fill"></i> View Teams
+                </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Users Section -->
+    <div class="col-md-4">
+        <div class="card shadow-lg border-0 rounded-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h4 class="card-title text-primary">Total Users</h4>
+                   <p class="fs-2 fw-bold">{{ total_users }}</p>
+                </div>
+                
+                <hr>
+                <div class="d-flex justify-content-between">
+                    <span class="fw-semibold text-muted">Without Teams:</span> <span class="text-danger fw-bold">{{ users_without_teams }}</span>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span class="fw-semibold text-muted">Without Tasks:</span> <span class="text-warning fw-bold">{{ users_without_milestones }}</span>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span class="fw-semibold text-muted">In More than 2 Teams:</span> <span class="text-success fw-bold">{{ users_in_more_than_2_teams }}</span>
+                </div>
+                
+                <div class="d-flex justify-content-begin">
+                  <a href="{% url 'user_list' %}" class="btn btn-outline-primary btn-sm mt-3  shadow-sm">
+                    <i class="bi bi-person-fill"></i> View Users
+                </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mt-4">
+    <div class="card-header">
+        <h5>Recent Activities</h5>
+    </div>
+    <ul class="list-group list-group-flush">
+        {% for activity in recent_activities %}
+        <li class="list-group-item">
+            
+            <em>{{ activity.activity_description }}</em> 
+            <span class="text-muted float-end">{{ activity.timestamp|date:"M d, Y H:i" }}</span>
+        </li>
+        {% empty %}
+        <li class="list-group-item text-center">No recent activities.</li>
+        {% endfor %}
+    </ul>
+</div>
+
+
+<!-- Custom Styles -->
+<style>
+    .card {
+        transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+    }
+    .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+    .card-body {
+        padding: 2rem;
+    }
+    .card-title {
+        font-size: 1.5rem;
+        font-weight: bold;
+    }
+    .display-6 {
+        font-size: 2.5rem;
+        font-weight: bolder;
+    }
+   
+    .shadow-sm {
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    }
+    
+</style>
+
+
+   
+
+</div>
+{% endblock %}

@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cascading Dropdowns</title>
+</head>
+<body>
+    <h1>Cascading Dropdowns</h1>
+
+    <label for="projects">Select Project:</label>
+    <select id="projects">
+        <option value="">-- Select Project --</option>
+        {% for project in projects %}
+        <option value="{{ project.id }}">{{ project.name }}</option>
+        {% endfor %}
+    </select>
+
+    <label for="milestones">Select Milestone:</label>
+    <select id="milestones" disabled>
+        <option value="">-- Select Milestone --</option>
+    </select>
+
+    <label for="tasks">Select Task:</label>
+    <select id="tasks" disabled>
+        <option value="">-- Select Task --</option>
+    </select>
+
+    <h2>Steps</h2>
+    <table border="1">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody id="steps-table">
+            <tr>
+                <td colspan="2">Select a task to view steps.</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <script>
+        document.getElementById('projects').addEventListener('change', function () {
+            const projectId = this.value;
+            const milestonesDropdown = document.getElementById('milestones');
+            milestonesDropdown.disabled = true;
+            milestonesDropdown.innerHTML = '<option value="">-- Select Milestone --</option>';
+
+            if (projectId) {
+                fetch(`/api/milestones/${projectId}/`)
+                    .then(response => response.json())
+                    .then(data => {
+                        milestonesDropdown.disabled = false;
+                        data.forEach(milestone => {
+                            milestonesDropdown.innerHTML += `<option value="${milestone.id}">${milestone.name}</option>`;
+                        });
+                    });
+            }
+        });
+
+        document.getElementById('milestones').addEventListener('change', function () {
+            const milestoneId = this.value;
+            const tasksDropdown = document.getElementById('tasks');
+            tasksDropdown.disabled = true;
+            tasksDropdown.innerHTML = '<option value="">-- Select Task --</option>';
+
+            if (milestoneId) {
+                fetch(`/api/tasks/${milestoneId}/`)
+                    .then(response => response.json())
+                    .then(data => {
+                        tasksDropdown.disabled = false;
+                        data.forEach(task => {
+                            tasksDropdown.innerHTML += `<option value="${task.id}">${task.name}</option>`;
+                        });
+                    });
+            }
+        });
+
+        document.getElementById('tasks').addEventListener('change', function () {
+            const taskId = this.value;
+            const stepsTable = document.getElementById('steps-table');
+            stepsTable.innerHTML = '<tr><td colspan="2">Loading...</td></tr>';
+
+            if (taskId) {
+                fetch(`/api/steps/${taskId}/`)
+                    .then(response => response.json())
+                    .then(data => {
+                        stepsTable.innerHTML = '';
+                        data.forEach((step, index) => {
+                            stepsTable.innerHTML += `
+                                <tr>
+                                    <td>${index + 1}</td>
+                                    <td>${step.description}</td>
+                                </tr>
+                            `;
+                        });
+                    });
+            } else {
+                stepsTable.innerHTML = '<tr><td colspan="2">Select a task to view steps.</td></tr>';
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,268 @@
+{% extends "home.html" %}
+{% block content %}
+    <style>
+        .tooltip-inner {
+            background-color: white; /* White background */
+            color: black;            /* Black text */
+            border: 1px solid #ccc; /* Light grey border */
+            padding: 10px;           /* Add padding for better visibility */
+            font-size: 14px;         /* Font size for tooltip text */
+        }
+
+        .tooltip.bs-tooltip-top .tooltip-arrow {
+            border-top-color: white; /* White arrow */
+        }
+
+        .tooltip.bs-tooltip-top .tooltip-arrow::before {
+            border-top-color: white; /* Ensure the arrow itself is white */
+        }
+    </style>
+    <div class=" bg-light">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a class="text-decoration-none" href="{% url 'home' %}">Home</a></li>
+                <li class="breadcrumb-item"><a class="text-decoration-none" href="{% url 'project_list' %}">Projects</a></li>
+                {% if task %}
+                    <li class="breadcrumb-item"><a class="text-decoration-none" href="{% url 'milestone_list' task.milestone.project.id %}">Milestones</a></li>
+                    <li class="breadcrumb-item"><a class="text-decoration-none" href="{% url 'task_list' task.milestone.id %}">Tasks</a></li>
+                {% else %}
+                    <li class="breadcrumb-item"><a class="text-decoration-none" href="{% url 'milestone_list' milestone.project.id %}">Milestones</a></li>
+                    <li class="breadcrumb-item"><a class="text-decoration-none" href="{% url 'task_list' milestone.id %}">Tasks</a></li>
+                {% endif %}
+                <li class="breadcrumb-item active">{% if task %}Edit{% else %}Create{% endif %}</li>
+            </ol>
+
+        </nav>
+    </div>
+    <div class="row g-2">
+        <div class="col-md-2">
+            {% if task %}
+                <a href="{% url 'task_list' task.milestone.id %}" class="text-decoration-none">
+                    <i class="bi bi-arrow-left-circle-fill"></i> Back 
+                </a>
+            {% else %}
+                <a href="{% url 'task_list' milestone.id %}" class="text-decoration-none">
+                    <i class="bi bi-arrow-left-circle-fill"></i> Back 
+                </a>
+            {% endif %}
+
+        </div>
+        <div class="">
+            {% if messages %}  
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        </div>
+    </div>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                  <!-- Project with tooltip for start and end date -->
+                <li class="breadcrumb-item" 
+                    data-toggle="tooltip" 
+                    data-placement="top" 
+                    title="Start: {{ task.milestone.project.start_date }} | End: {{ task.milestone.project.end_date }}">
+                    {{ task.milestone.project.name }}
+                </li>
+                <!-- Milestone with tooltip for start and end date -->
+                <li class="breadcrumb-item" 
+                    data-toggle="tooltip" 
+                    data-placement="top" 
+                    title="Start: {{ task.milestone.start_date }} | End: {{ task.milestone.end_date }}">
+                    {{ task.milestone.name }}
+                </li>
+             
+            
+            </ol>
+        </nav>
+    <div class="container mt-2">
+     
+        <div class="card shadow-sm mx-3 w-50">
+            <div class="card-header bg-light ">
+                <h5 class="mb-0">Task Details</h5>        
+            </div>
+            <div class="card-body">
+                <form id="task-form" method="POST" action="{% if task %}{% url 'edit_task' task.id %}{% else %}{% url 'create_task' milestone.id %}{% endif %}">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Task Name</label>
+                        <input type="text" name="name" id="name" class="form-control" value="{% if task %}{{ task.name }}{% endif %}" required>
+                        <div class="invalid-feedback">Task name must start with a letter, be at least 5 characters long, and can only include (_,-,:).</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea name="description" id="description" class="form-control" required>{% if task %}{{ task.description }}{% endif %}</textarea>
+                        <div class="invalid-feedback">Description must start with a letter and have at least 5 words.</div>
+                    </div>
+                    <div class="d-flex justify-content-between w-100">
+                        <!-- Start Date -->
+                        <div class="mb-3 ">
+                            <label for="start_date" class="form-label">Start Date</label>
+                                <input type="date" class="form-control" id="start_date" 
+                                    name="start_date"
+                                    value="{% if task %}{{ task.start_date|date:'Y-m-d' }}{% endif %}" required>
+                                <div class="invalid-feedback">
+                                    Start date is required.
+                                </div>
+                        </div>
+
+                        <!-- End Date -->
+                        <div class="mb-3 ">
+                            <label for="end_date" class=" form-label">End Date</label>
+                                <input type="date" class="form-control " id="end_date" name="end_date" 
+                                    value="{% if task %}{{ task.end_date|date:'Y-m-d' }}{% endif %}" required>
+                                <div class="text-danger" id="end-date-error" style="display: none;">
+                                    The end date must be later than the start date.
+                                </div>
+                        </div>  
+                    </div>  
+                    <div class="mb-3">
+                        <label for="assigned_to" class="form-label">Assign to</label>
+                        <select name="assigned_to" id="assigned_to" class="form-select" multiple>
+                            {% for user in users %}
+                                <option value="{{ user.id }}" {% if task and user in task.assigned_to.all %}selected{% endif %}>{{ user.username }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="status" class="form-label">Status</label>
+                        <select name="status" id="status" class="form-select">
+                            <option value="not_started" {% if task and task.status == 'not_started' %}selected{% endif %}>Not Started</option>
+                            <option value="in_progress" {% if task and task.status == 'in_progress' %}selected{% endif %}>In Progress</option>
+                            <option value="completed" {% if task and task.status == 'completed' %}selected{% endif %}>Completed</option>
+                        </select>
+                    </div>
+
+                    <!-- Steps Section -->
+                    <div id="steps-section">
+                        <h5>Task Steps</h5>
+                        <div class="input-group mb-3 d-flex justify-content-end">
+                            <button type="button" class="btn btn-outline-primary add-step">Add Step</button>
+                        </div>
+                        {% if task %}
+                            {% for step in task.steps.all %}
+                                <div class="input-group mb-3 step-entry">
+                                    <input type="text" name="steps[]" class="form-control" value="{{ step.description }}" placeholder="Step Description">
+                                    <button type="button" class="btn btn-outline-danger remove-step">Remove</button>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="input-group mb-3 step-entry">
+                                <input type="text" name="steps[]" class="form-control" placeholder="Step Description">
+                                <button type="button" class="btn btn-outline-danger remove-step">Remove</button>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <button type="submit" class="btn btn-success">{% if task %}Update Task{% else %}Create Task{% endif %}</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const taskForm = document.getElementById("task-form");
+            const nameInput = document.getElementById("name");
+            const descriptionInput = document.getElementById("description");
+            const startDateInput = document.getElementById("start_date");
+            const endDateInput = document.getElementById("end_date");
+            const endDateError = document.getElementById("end-date-error");
+
+            taskForm.addEventListener("submit", function (event) {
+                let valid = true;
+
+                // Validate Task Name
+                const taskNamePattern = /^[A-Za-z][A-Za-z0-9_: -]{4,}$/; // At least 5 chars, starts with letter, only _, -, :
+                if (!taskNamePattern.test(nameInput.value.trim())) {
+                    nameInput.classList.add("is-invalid");
+                    valid = false;
+                } else {
+                    nameInput.classList.remove("is-invalid");
+                }
+
+                // Validate Description
+                const words = descriptionInput.value.trim().split(/\s+/);
+                if (words.length < 5 || !/^[A-Za-z]/.test(descriptionInput.value.trim())) {
+                    descriptionInput.classList.add("is-invalid");
+                    valid = false;
+                } else {
+                    descriptionInput.classList.remove("is-invalid");
+                }
+
+                // Validate Dates: Start Date should be earlier than End Date
+                const startDate = new Date(startDateInput.value);
+                const endDate = new Date(endDateInput.value);
+
+                if (startDate >= endDate) {
+                    // Show the error message if the start date is not earlier than the end date
+                    endDateError.style.display = "block";
+                    endDateInput.classList.add("is-invalid");
+                    valid = false;
+                } else {
+                    // Hide the error message if the dates are valid
+                    endDateError.style.display = "none";
+                    endDateInput.classList.remove("is-invalid");
+                }
+
+                if (!valid) {
+                    event.preventDefault(); // Stop form submission if validation fails
+                }
+            });
+
+            // Steps management
+            document.querySelector(".add-step").addEventListener("click", function () {
+                let stepSection = document.getElementById("steps-section");
+                let newStep = document.createElement("div");
+                newStep.classList.add("input-group", "mb-3", "step-entry");
+                newStep.innerHTML = `
+                    <input type="text" name="steps[]" class="form-control" placeholder="Step Description">
+                    <button type="button" class="btn btn-outline-danger remove-step">Remove</button>
+                `;
+                stepSection.appendChild(newStep);
+            });
+
+            document.getElementById("steps-section").addEventListener("click", function (event) {
+                if (event.target.classList.contains("remove-step")) {
+                    event.target.closest(".step-entry").remove();
+                }
+            });
+        });
+    </script>
+
+    <script>
+        // Handle Adding New Steps
+        document.querySelector('.add-step')?.addEventListener('click', function() {
+            const stepsSection = document.getElementById('steps-section');
+            const inputGroup = document.createElement('div');
+            inputGroup.className = 'input-group mb-3';
+            inputGroup.innerHTML = `
+                <input type="text" name="steps[]" class="form-control" placeholder="Step Description">
+                <button type="button" class="btn btn-outline-danger remove-step">Remove</button>
+            `;
+            stepsSection.appendChild(inputGroup);
+        });
+
+        // Handle Removing Steps and Issues
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('remove-step')) {
+                e.target.closest('.input-group').remove();
+            } else if (e.target.classList.contains('remove-issue')) {
+                e.target.closest('.input-group').remove();
+            }
+        });
+    </script>
+
+    <script>
+        // Enable tooltips globally
+        $(document).ready(function () {
+            $('[data-toggle="tooltip"]').tooltip();
+        });
+    </script>
+{% endblock %}

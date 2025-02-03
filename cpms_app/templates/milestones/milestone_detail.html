@@ -1,0 +1,138 @@
+{% extends 'home.html' %}
+{% block title %}Milestone Details{% endblock %}
+{% block content %}
+<style>
+    /* Common styles for timeline and layout */
+    .timeline {
+        position: relative;
+        margin: 20px 0;
+        padding-left: 40px;
+        border-left: 3px solid #007bff;
+    }
+
+    .timeline-item {
+        position: relative;
+        margin-bottom: 20px;
+        padding: 10px 20px;
+        background-color: #f9f9f9;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .timeline-item:before {
+        content: "";
+        position: absolute;
+        left: -8px;
+        top: 10px;
+        width: 15px;
+        height: 15px;
+        background-color: #007bff;
+        border-radius: 50%;
+        border: 3px solid white;
+    }
+
+    .timeline-title {
+        font-size: 1.2rem;
+        font-weight: bold;
+    }
+
+    .timeline-time {
+        font-size: 0.9rem;
+        color: gray;
+    }
+</style>
+
+<!-- Breadcrumb Navigation -->
+<div class="breadcrumb-wrapper bg-light">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb bg-light rounded px-3">
+            <li class="breadcrumb-item"><a href="{% url 'home' %}" class="text-decoration-none">Home</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'milestone_list' %}" class="text-decoration-none">Tasks</a></li>
+            <li class="breadcrumb-item active">Milestone Detail</li>
+        </ol>
+    </nav>
+</div>
+
+<div class="container">
+    <div class="card-header bg-light">
+        <h5 class="card-title">
+            {{ milestone.name }}
+        </h5>
+    </div>
+    <div class="row m-3">
+        <div class="col-12 mb-4">
+            <!-- Horizontal Tabs -->
+            <ul class="nav nav-tabs" role="tablist">
+                <li class="nav-item">
+                    <a class="nav-link {% if not timeline_active %}active{% endif %}" id="milestone-details-tab" data-bs-toggle="tab" href="#milestone-details" role="tab" aria-controls="milestone-details" aria-selected="true">Task Details</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {% if timeline_active %}active{% endif %}" id="timeline-tab" data-bs-toggle="tab" href="#timeline" role="tab" aria-controls="timeline" aria-selected="false">Timeline</a>
+                </li>
+            </ul>
+
+            <!-- Tab Content -->
+            <div class="tab-content mt-4">
+                <!-- Task Details Tab -->
+                <div class="tab-pane fade {% if not timeline_active %}show active{% endif %}" id="milestone-details" role="tabpanel" aria-labelledby="milestone-details-tab">
+                    <div class="row">
+                        <!-- Task Details -->
+                        <div class="col-md-4 mb-4">
+                            <h6 class="text-uppercase text-muted">Task Details</h6>
+                            <p><strong>Name:</strong> {{ milestone.name }}</p>
+                            <p><strong>Description:</strong> {{ milestone.description|default:"No description provided" }}</p>
+                            <p><strong>Start Date:</strong> {{ milestone.start_date|date:"F j, Y" }}</p>
+                            <p><strong>Due Date:</strong> {{ milestone.due_date|date:"F j, Y" }}</p>
+                        </div>
+
+                        <!-- Assigned User -->
+                        <div class="col-md-4 mb-4">
+                            <h6 class="text-uppercase text-muted">Assigned User</h6>
+                            {% if milestone.assigned_to %}
+                                <p><strong>Assigned To:</strong> {{ milestone.assigned_to.username }}</p>
+                            {% else %}
+                                <p><span class="text-danger">No user assigned</span></p>
+                            {% endif %}
+                        </div>
+
+                        <!-- Task Status -->
+                        <div class="col-md-4 mb-4">
+                            <h6 class="text-uppercase text-muted">Task Status</h6>
+                            <p><strong>Status:</strong> 
+                                <span class="badge 
+                                    {% if milestone.status == 'completed' %}
+                                        bg-success
+                                    {% elif milestone.status == 'in_progress' %}
+                                        bg-warning text-dark
+                                    {% else %}
+                                        bg-secondary
+                                    {% endif %}
+                                ">
+                                    {{ milestone.get_status_display }}
+                                </span>
+                            </p>
+                            <p><strong>Completion:</strong> {{ milestone.is_completed|yesno:"Yes,No" }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Timeline Tab -->
+                <div class="tab-pane fade {% if timeline_active %}show active{% endif %}" id="timeline" role="tabpanel" aria-labelledby="timeline-tab">
+                    <div class="timeline">
+                        {% for activity in activity_log %}
+                        <div class="timeline-item">
+                            <div class="timeline-title">{{ activity.title }}</div>
+                            <div class="timeline-time">
+                                <strong>Time:</strong> {{ activity.timestamp|date:"F j, Y, g:i a" }}
+                            </div>
+                            <p>{{ activity.description }}</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

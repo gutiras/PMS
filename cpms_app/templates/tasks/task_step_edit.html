@@ -1,0 +1,194 @@
+{% extends "home.html" %}
+
+{% block content %}
+ <div class=" bg-light">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a class="text-decoration-none" href="{% url 'home' %}">Home</a></li>
+                <li class="breadcrumb-item"><a class="text-decoration-none" href="{% url 'project_list' %}">Projects</a></li>
+                <li class="breadcrumb-item"><a class="text-decoration-none" href="{% url 'milestone_list' step.task.milestone.project.id%}">Milestones</a></li>
+                <li class="breadcrumb-item"><a class="text-decoration-none" href="{% url 'task_list' step.task.milestone.id%}">Tasks</a></li>
+                <li class="breadcrumb-item"><a class="text-decoration-none" href="{% url 'manage_task_steps' step.task.id %}">Steps</a></li>
+                 <li class="breadcrumb-item active">Edit</li>
+            </ol>
+        </nav>
+    </div>
+    <a href="{% url 'manage_task_steps' step.task.id %}" class="text-decoration-none">
+        <i class="bi bi-arrow-left-circle-fill me-2"></i>Back
+    </a>
+    <!-- Messages Section -->
+    {% if messages %}
+        {% for message in messages %}
+            {% if message.tags == 'danger' %}
+                <!-- Error Modal -->
+                <div class="modal fade" id="errorModal" tabindex="-1" aria-labelledby="errorModalLabel" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header bg-danger text-white">
+                                <h5 class="modal-title" id="errorModalLabel"><i class="bi bi-exclamation-triangle me-2"></i>Error</h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                {{ message }}
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <script>
+                    document.addEventListener('DOMContentLoaded', function() {
+                        var errorModal = new bootstrap.Modal(document.getElementById('errorModal'));
+                        errorModal.show();
+                    });
+                </script>
+            {% else %}
+                <!-- Non-Error Alerts -->
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    <i class="bi {% if message.tags == 'success' %}bi-check-circle{% else %}bi-info-circle{% endif %} me-2"></i>
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb bg-light p-3 rounded shadow-sm">
+            
+                <!-- Project with tooltip for start and end date -->
+                <li class="breadcrumb-item" 
+                    data-bs-toggle="tooltip" 
+                    data-bs-placement="top" 
+                    title="Start: {{ step.task.milestone.project.start_date }} | End: {{ step.task.milestone.project.end_date }}">
+                    <i class="bi bi-folder me-2"></i>{{ step.task.milestone.project.name }}
+                </li>
+                <!-- Milestone with tooltip for start and end date -->
+                <li class="breadcrumb-item" 
+                    data-bs-toggle="tooltip" 
+                    data-bs-placement="top" 
+                    title="Start: {{ step.task.milestone.start_date }} | End: {{ step.task.milestone.end_date }}">
+                    <i class="bi bi-signpost me-2"></i>{{ step.task.milestone.name }}
+                </li>
+                 <!-- Milestone with tooltip for start and end date -->
+                <li class="breadcrumb-item" 
+                    data-bs-toggle="tooltip" 
+                    data-bs-placement="top" 
+                    title="Start: {{ step.task.start_date }} | End: {{ step.task.end_date }}">
+                    <i class="bi bi-signpost me-2"></i>{{ step.task.name }}
+                </li>
+                 <!-- Milestone with tooltip for start and end date -->
+                <li class="breadcrumb-item" 
+                    data-bs-toggle="tooltip" 
+                    data-bs-placement="top" 
+                    title="Start: {{ step.name.start_date }} | End: {{ step.name.end_date }}">
+                    <i class="bi bi-signpost me-2"></i>{{ step.name }}
+                </li>
+           
+        </ol>
+    </nav>
+    <!-- Edit Step Form -->
+    <div class="container mt-4 ">
+        <div class="card shadow-sm border-0 w-75">
+            <div class="bg-light d-flex justify-content-between align-items-center py-2">
+                <h4 class="mb-0"><i class=" small bi bi-pencil-square me-2"></i>Edit {{ step.name }}</h4>
+                
+            </div>
+            <div class="card-body mx-4">
+                <form method="post" action="{% url 'edit_task_step' step.id 0 %}" class="needs-validation" novalidate>
+                    {% csrf_token %}
+                    
+                    
+                    <!-- Description -->
+                    <div class="mb-4">
+                        <label for="description" class="form-label fw-medium">Description</label>
+                        <textarea id="description" name="description" class="form-control" rows="4" required>{{ step.description }}</textarea>
+                        <div class="invalid-feedback">Please provide a valid description.</div>
+                    </div>
+
+                    
+
+                    <!-- Status -->
+                    <div class="mb-4">
+                        <label for="status" class="form-label fw-medium">Status</label>
+                        <select id="status" name="status" class="form-select" required>
+                            {% for key, value in step.STATUS_CHOICES %}
+                                <option value="{{ key }}" {% if step.status == key %}selected{% endif %}>
+                                    {{ value }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                        <div class="invalid-feedback">Please select a valid status.</div>
+                    </div>
+
+                    <!-- Form Actions -->
+                    <div class="d-flex justify-content-end gap-3">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-save me-2"></i>Save Changes
+                        </button>
+                        <a href="{% url 'manage_task_steps' step.task.id %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-circle me-2"></i>Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Styles -->
+    <style>
+        .card {
+            border-radius: 0.75rem;
+        }
+
+        .card-header {
+            padding: 1.25rem;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .card-body {
+            padding: 2rem;
+        }
+
+        .form-control-lg {
+            padding: 0.75rem 1rem;
+            font-size: 1rem;
+        }
+
+        .form-select {
+            padding: 0.75rem 1rem;
+            font-size: 1rem;
+        }
+
+        .btn-primary {
+            background-color: #0d6efd;
+            border-color: #0d6efd;
+        }
+
+        .btn-primary:hover {
+            background-color: #0b5ed7;
+            border-color: #0a58ca;
+        }
+
+        .invalid-feedback {
+            font-size: 0.875rem;
+        }
+    </style>
+
+    <!-- Scripts -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Enable Bootstrap validation
+            var forms = document.querySelectorAll('.needs-validation');
+            Array.prototype.slice.call(forms).forEach(function(form) {
+                form.addEventListener('submit', function(event) {
+                    if (!form.checkValidity()) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                    }
+                    form.classList.add('was-validated');
+                }, false);
+            });
+        });
+    </script>
+{% endblock %}

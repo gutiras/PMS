@@ -1,0 +1,535 @@
+{% extends 'home.html' %}
+{% block title %}Milestones{% endblock %}
+{% block content %}
+    <style>
+            .timeline-container {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start; /* Align items to the left */ 
+            background-color: #fafafa;
+            height: 35vh; /* Adjust to control the vertical size */
+            overflow-x: auto; /* Enable horizontal scrolling for this container */
+            overflow-y: hidden; /* Prevent vertical scrolling */
+            }
+        #timeline-svg {
+            width: 100%; 
+            overflow-x: auto;
+            background-color: #f8f9fa;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+            /* Milestone Circle */
+       /* Add this keyframe animation */
+        @keyframes borderPulse {
+        0% { stroke: #fff; }
+        50% { stroke: rgb(248, 248, 17); }
+        100% { stroke: #fff; }
+        }
+
+        .milestone-circle.active {
+       
+        animation: borderPulse 2.5s infinite; /* Add the animation */
+        }
+
+        /* Rest of your existing CSS remains the same */
+        .milestone-circle {
+        stroke: #fff;
+        stroke-width: 3;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        }
+
+        .milestone-circle.completed {
+           fill: #28a745; /* Blue for active */
+        }
+
+        .milestone-circle.active {
+            fill:rgb(248, 248, 17); /* Green for completed */
+        }
+
+        .milestone-circle.upcoming {
+            fill: #6c757d; /* Gray for upcoming */
+        }
+
+    
+      
+        .milestone-label,
+        .status-label {
+        font-family: Arial, sans-serif;
+        
+        text-anchor: middle;
+        }
+        .status-label {
+             font-weight: normal;
+        }
+
+        /* Info Card */
+        #info-card {
+            position: absolute;
+            display: none;
+            z-index: 1000;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            padding: 16px;
+            max-width: 300px;
+        }
+
+        .card {
+            border: none;
+        }
+
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .card-text {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .list-group-item {
+            font-size: 14px;
+            padding: 8px 0;
+        }
+    </style>
+
+    <style>
+        /* Hide the global scrollbar  */
+            html {
+                overflow-y: auto; /* Disable global vertical scrolling */
+                scrollbar-width: none; /* Hide scrollbar for Firefox */
+                -ms-overflow-style: none;
+            }
+            html::-webkit-scrollbar {
+                display: none; /* Hide scrollbar for WebKit browsers */
+            }
+        .bg-light-50 {
+            background-color: rgba(248, 249, 250, 0.9);
+        }
+
+        .badge {
+            padding: 0.5rem 0.75rem;
+            font-size: 0.875rem;
+            letter-spacing: 0.05em;
+        }
+
+        .bg-success-soft {
+            background-color: rgba(25, 135, 84, 0.1) !important;
+        }
+
+        .bg-warning-soft {
+            background-color: rgba(255, 193, 7, 0.1) !important;
+        }
+
+        .bg-secondary-soft {
+            background-color: rgba(108, 117, 125, 0.1) !important;
+        }
+
+        .bg-danger-soft {
+            background-color: rgba(220, 53, 69, 0.1) !important;
+        }
+
+        .table-hover tbody tr {
+            transition: all 0.2s ease;
+        }
+
+        .table-hover tbody tr:hover {
+            transform: translateX(4px);
+            background-color: #f8f9fa !important;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .animate__animated {
+            animation-duration: 0.3s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .animate__fadeIn {
+            animation-name: fadeIn;
+        }
+    </style>
+
+    <!-- Breadcrumb -->
+    <div class="breadcrumb">
+        {% block breadcrumb %}
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a class="text-decoration-none" href="{% url 'home' %}">Home</a></li>
+                <li class="breadcrumb-item"><a class="text-decoration-none" href="{% url 'project_list' %}">{{project.name}}</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Milestones</li>
+            </ol>
+        </nav>
+        {% endblock %}
+    </div>
+
+    <div class="d-flex justify-content-between mb-3">
+        <a href="{% url 'project_list' %}" class="text-decoration-none ">
+            <i class="bi bi-arrow-left-circle-fill"></i> Back
+        </a>
+        <div>
+            {% if project.assigned_team.leader == user or user.role == "admin" %}
+                <a href="{% url 'milestone_create' project.id %}" class="text-decoration-none ">
+                    <i class="bi bi-plus-circle-fill"></i> Create Milestone
+                </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div >   
+        <div class="timeline-container mb-3">
+            <svg id="timeline-svg" ></svg>
+            <div class="milestone-info-card" id="info-card"></div>
+        </div>
+         <!-- Message Handling Section -->
+        {% if messages %}
+            <!-- Iterate over messages -->
+            {% for message in messages %}
+                <!-- Check if message tag is 'danger' (error message) -->
+                {% if message.tags == 'danger' %}
+                    <!-- Modal for Error Message -->
+                    <div class="modal fade" id="errorModal" tabindex="-1" aria-labelledby="errorModalLabel" aria-hidden="true">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="errorModalLabel">Error</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    {{ message }}
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% else %}
+                    <!-- Normal Alerts for Non-Error Messages -->
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+
+  
+        <div class="bg-light p-4 rounded-4 shadow-sm mx-4">
+            {% if milestoness %}
+                <!-- Top Filters -->
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <!-- Total Milestones Count -->
+                    <div class="d-flex align-items-center gap-3">
+                        <h6 class="mb-0"><i class="bi bi-signpost-split me-2"></i>Milestones</h6>
+                        <span class="badge bg-primary rounded-pill fs-6" id="totalMilestones">{{ milestoness|length }}</span>
+                    </div>
+
+                    <!-- Search & Filter -->
+                    <div class="d-flex gap-3">
+                        <!-- Filter by Status -->
+                        <select id="statusFilter" class="form-select form-select-sm shadow-sm" style="width: 180px;">
+                            <option value="all">All Statuses</option>
+                            <option value="Pending">Pending</option>
+                            <option value="In Progress">In Progress</option>
+                            <option value="Completed">Completed</option>
+                        </select>
+
+                        <!-- Search Field -->
+                        <div class="input-group input-group-sm shadow-sm" style="width: 250px;">
+                            <span class="input-group-text bg-white border-0"><i class="bi bi-search text-muted"></i></span>
+                            <input type="text" id="searchInput" class="form-control border-0" placeholder="Search milestone...">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Milestone Table -->
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle" id="milestonesTable">
+                        <thead class="bg-light-50">
+                            <tr>
+                                <th>Name</th>
+                                <th>Status</th>
+                                <th>Description</th>
+                                <th>Time Left</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for milestone in milestoness %}
+                            <tr class="milestone-row animate__animated animate__fadeIn" data-status="{{ milestone.status }}">
+                                <td>
+                                    <h6 class="fw-bold mb-0">
+                                        <i class="bi bi-signpost me-2"></i>{{ milestone.name }}
+                                    </h6>
+                                </td>
+                                <td>
+                                    <span class="badge rounded-pill 
+                                        {% if milestone.status == 'Completed' %}bg-success-soft text-success
+                                        {% elif milestone.status == 'In Progress' %}bg-warning-soft text-warning
+                                        {% else %}bg-secondary-soft text-secondary{% endif %}">
+                                        {{ milestone.status }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="text-muted">{{ milestone.description|truncatechars:50 }}</span>
+                                </td>
+                                <td>
+                                    {% if milestone.delayed_days %}
+                                        <span class="badge bg-danger-soft text-danger">
+                                            <i class="bi bi-exclamation-triangle me-1"></i>{{ milestone.delayed_days }} days delayed
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-success-soft text-success">
+                                            <i class="bi bi-clock me-1"></i>{{ milestone.days_left }} days left
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">
+                                    <div class="d-flex justify-content-end gap-2">
+                                        {% if is_next_active_or_completed.name == milestone.name or milestone.status == "Completed" or milestone.status == "In Progress" %}
+                                            <a href="{% url 'task_list' milestone.id %}" class="btn btn-sm btn-outline-secondary d-flex align-items-center gap-2">
+                                                <i class="bi bi-list"></i>Tasks
+                                            </a>
+                                        {% endif %}
+                                        <a href="{% url 'milestone_edit' milestone.id %}" class="btn btn-sm btn-outline-warning d-flex align-items-center gap-2">
+                                            <i class="bi bi-edit"></i>Edit
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <!-- Empty State -->
+                <div class="alert alert-info text-center py-4">
+                    <i class="bi bi-info-circle fs-4 me-2"></i>No milestones available for this project.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+  
+        <!-- JS for Filtering and Search -->
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                // Filter Milestones by Status
+                const statusFilter = document.getElementById('statusFilter');
+                const searchInput = document.getElementById('searchInput');
+                const milestoneRows = document.querySelectorAll('.milestone-row');
+
+                function filterMilestones() {
+                    const status = statusFilter.value.toLowerCase();
+                    const searchTerm = searchInput.value.toLowerCase();
+
+                    milestoneRows.forEach(row => {
+                        const rowStatus = row.dataset.status.toLowerCase();
+                        const rowText = row.textContent.toLowerCase();
+
+                        const matchesStatus = status === 'all' || rowStatus === status;
+                        const matchesSearch = rowText.includes(searchTerm);
+
+                        row.style.display = (matchesStatus && matchesSearch) ? '' : 'none';
+                    });
+
+                    // Update total count
+                    const visibleRows = document.querySelectorAll('.milestone-row[style=""]').length;
+                    document.getElementById('totalMilestones').textContent = visibleRows;
+                }
+
+                statusFilter.addEventListener('change', filterMilestones);
+                searchInput.addEventListener('input', filterMilestones);
+            });
+        </script>
+         <!-- JS for graphical Milestones -->
+         <!-- Full script -->
+ <script>
+  // Wait until the window is fully loaded to ensure the SVG is rendered
+  window.addEventListener('load', function() {
+    // Parse milestones passed from Django.
+    // For testing you can uncomment the following test data:
+    /*
+    const milestones = [
+      {"name": "Start", "description": "Project start", "start_date": "2025-01-01", "end_date": "2025-02-01", "status": "Completed", "is_active": false},
+      {"name": "MidwayMilestone", "description": "Mid project", "start_date": "2025-02-02", "end_date": "2025-03-01", "status": "In Progress", "is_active": true},
+      {"name": "EndWithALongNameExample", "description": "Project end", "start_date": "2025-03-02", "end_date": "2025-04-01", "status": "Pending", "is_active": false}
+    ];
+    */
+    const milestones = JSON.parse('{{ milestones|escapejs }}');
+
+    // Define the SVG container and info card
+    const svg = document.getElementById("timeline-svg");
+    const infoCard = document.getElementById("info-card");
+
+    // Generate positions dynamically, centered horizontally.
+    const positions = milestones.map((_, index) => ({
+      x: 100 + index * 200,  // horizontal spacing between milestones
+      y: 300                // fixed vertical position
+    }));
+
+    // Calculate total width based on the last milestone (with some extra padding)
+    const totalWidth = positions[positions.length - 1].x + 200;
+    const totalHeight = 600; // fixed height
+
+    // Update the SVG attributes
+    svg.setAttribute("width", `${totalWidth}px`);
+    svg.setAttribute("viewBox", `0 0 ${totalWidth} ${totalHeight}`);
+    svg.style.minWidth = `${totalWidth}px`; // ensure horizontal scrolling if needed
+
+    // Add the straight line path (the "road" of the timeline)
+    const roadPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    roadPath.setAttribute("d", `M${positions[0].x},${positions[0].y} L${positions[positions.length - 1].x},${positions[positions.length - 1].y}`);
+    roadPath.setAttribute("fill", "none");
+    roadPath.setAttribute("stroke", "#333");
+    roadPath.setAttribute("stroke-width", "6");
+    roadPath.setAttribute("stroke-linecap", "round");
+    svg.appendChild(roadPath);
+
+    // Get the scale factor from the SVG’s current rendering.
+    // The viewBox and width attributes scale the SVG relative to its user-space units.
+    const bbox = svg.getBoundingClientRect();
+    const scaleX = bbox.width / totalWidth;  // assuming uniform scaling
+
+    // Set the desired on-screen radius in pixels (remains constant)
+    const desiredPixelRadius = 50;
+    // Compute the user-space radius so that after scaling it appears as desiredPixelRadius.
+    const userSpaceRadius = desiredPixelRadius / scaleX;
+
+    // Similarly, define a desired pixel font size for labels and compute the corresponding user-space size.
+    const desiredPixelFontSize = 16;
+    const userSpaceFontSize = desiredPixelFontSize / scaleX;
+
+    // Function to update milestone classes based on status.
+    const updateMilestones = () => {
+      let foundActive = false;
+      for (let i = 0; i < milestones.length; i++) {
+        const milestone = milestones[i];
+        const circle = svg.querySelector(`#milestone-${i}`);
+
+        // Reset previous active milestone if needed.
+        if (foundActive && !milestone.is_active && milestone.status !== 'Completed') {
+          circle.classList.remove('active');
+          circle.classList.add('upcoming');
+        }
+
+        // Update classes based on status.
+        if (milestone.status === 'Completed') {
+          circle.classList.add('completed');
+          circle.classList.remove('active');
+          if (i + 1 < milestones.length) {
+            const nextMilestone = svg.querySelector(`#milestone-${i + 1}`);
+            nextMilestone.classList.add('active');
+            nextMilestone.classList.remove('upcoming');
+          }
+        } else if (milestone.is_active) {
+          circle.classList.add('active');
+          foundActive = true;
+        } else {
+          circle.classList.add('upcoming');
+        }
+      }
+    };
+
+    // Add milestones to the timeline.
+    milestones.forEach((milestone, index) => {
+      const pos = positions[index];
+
+      // Create milestone circle using the computed userSpaceRadius.
+      const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+      circle.setAttribute("id", `milestone-${index}`);
+      circle.setAttribute("cx", pos.x);
+      circle.setAttribute("cy", pos.y);
+      circle.setAttribute("r", userSpaceRadius.toString());
+      circle.setAttribute("class", "milestone-circle");
+      svg.appendChild(circle);
+
+      // Create milestone label (positioned above the circle) as an SVG text element.
+      const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      label.setAttribute("x", pos.x);
+      label.setAttribute("y", pos.y - 60);  // original y position for the first line
+      // Center the text horizontally
+      label.setAttribute("text-anchor", "middle");
+      // Set font properties for consistency.
+      label.setAttribute("font-size", userSpaceFontSize.toString());
+      label.setAttribute("font-weight", "");
+      label.setAttribute("font-family", "Arial, sans-serif");
+      label.setAttribute("class", "milestone-label");
+
+      // Determine maximum characters per line before splitting.
+      const maxCharsPerLine = 20;
+      if (milestone.name.length > maxCharsPerLine) {
+        // Split the text into two parts.
+        const firstLine = milestone.name.substring(0, maxCharsPerLine);
+        const secondLine = milestone.name.substring(maxCharsPerLine);
+        // Create first tspan for the first line.
+        const tspan1 = document.createElementNS("http://www.w3.org/2000/svg", "tspan");
+        tspan1.setAttribute("x", pos.x);
+        // dy="0" keeps it on the first line.
+        tspan1.setAttribute("dy", "0");
+        tspan1.textContent = firstLine;
+        label.appendChild(tspan1);
+
+        // Create second tspan for the second line.
+        const tspan2 = document.createElementNS("http://www.w3.org/2000/svg", "tspan");
+        tspan2.setAttribute("x", pos.x);
+        // dy attribute offsets the second line by the computed font size.
+        tspan2.setAttribute("dy", userSpaceFontSize.toString());
+        tspan2.textContent = secondLine;
+        label.appendChild(tspan2);
+      } else {
+        // If the text is short, simply use it as is.
+        label.textContent = milestone.name;
+      }
+      svg.appendChild(label);
+
+      // Create a status label inside the circle.
+      const statusLabel = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      statusLabel.setAttribute("x", pos.x);
+      statusLabel.setAttribute("y", pos.y + 5);  // centered inside the circle
+      statusLabel.setAttribute("text-anchor", "middle");
+      statusLabel.setAttribute("font-size", userSpaceFontSize.toString());
+      statusLabel.setAttribute("class", "status-label");
+      statusLabel.setAttribute("font-weight", "bold");
+      statusLabel.setAttribute("font-family", "Arial, sans-serif");
+      statusLabel.textContent = milestone.status;
+      svg.appendChild(statusLabel);
+
+      // Show info card on mouseover.
+      circle.addEventListener("mouseover", (event) => {
+        infoCard.style.display = "block";
+        infoCard.style.left = `${event.pageX + 10}px`;
+        infoCard.style.top = `${event.pageY + 10}px`;
+        infoCard.innerHTML = `
+          <div class="card shadow-sm">
+            <div class="card-body">
+              <h5 class="card-title">${milestone.name}</h5>
+              <p class="card-text">${milestone.description || "No description provided"}</p>
+              <ul class="list-group list-group-flush">
+                <li class="list-group-item"><strong>Start Date:</strong> ${milestone.start_date}</li>
+                <li class="list-group-item"><strong>End Date:</strong> ${milestone.end_date}</li>
+                <li class="list-group-item"><strong>Status:</strong> ${milestone.status}</li>
+              </ul>
+            </div>
+          </div>`;
+      });
+
+      // Hide info card when mouse leaves the circle.
+      circle.addEventListener("mouseout", () => {
+        infoCard.style.display = "none";
+      });
+    });
+
+    // Update milestone classes based on their status.
+    updateMilestones();
+  });
+</script>
+
+
+{% endblock %}

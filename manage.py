@@ -6,13 +6,13 @@ import sys
 from django.core.management import execute_from_command_line
 
 if __name__ == "__main__":
-    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'gantt_project.settings')  # Replace 'gantt_project.settings' with the actual path to your settings module
+    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'cpms_project.settings')  # Replace 'gantt_project.settings' with the actual path to your settings module
     execute_from_command_line(sys.argv)
 
 
 def main():
     """Run administrative tasks."""
-    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'gantt_project.settings')
+    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'cpms_project.settings')
     try:
         from django.core.management import execute_from_command_line
     except ImportError as exc:

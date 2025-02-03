@@ -1,0 +1,422 @@
+{% extends "home.html" %}
+{% block title %}Tasks{% endblock %}
+{% block content %}
+
+    <!-- Breadcrumb Navigation -->
+    <div class=" bg-light">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a class="text-decoration-none" href="{% url 'home' %}">Home</a></li>
+                <li class="breadcrumb-item"><a class="text-decoration-none" href="{% url 'project_list' %}">Projects</a></li>
+                <li class="breadcrumb-item"><a class="text-decoration-none" href="{% url 'milestone_list' milestone.project.id%}">Milestones</a></li>
+                <li class="breadcrumb-item active">Tasks
+            </ol>
+        </nav>
+    </div>
+
+    {% if messages %}
+            <!-- Iterate over messages -->
+            {% for message in messages %}
+                <!-- Check if message tag is 'danger' (error message) -->
+                {% if message.tags == 'danger' %}
+                    <!-- Modal for Error Message -->
+                    <div class="modal fade" id="errorModal" tabindex="-1" aria-labelledby="errorModalLabel" aria-hidden="true">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="errorModalLabel">Error</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    {{ message }}
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% else %}
+                    <!-- Normal Alerts for Non-Error Messages -->
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endif %}
+            {% endfor %}
+    {% endif %}
+
+    <div class="container mt-3 ">
+        <!-- Task Cards -->
+        <div class="d-flex justify-content-end">
+        {% if milestone.project.assigned_team.leader == user or user.role == "admin" %}
+            <a href="{% url 'create_task' milestone.id %}" class="text-decoration-none mb-2">
+                <i class="bi bi-plus-circle-fill"></i> Create
+            </a>
+            {%endif%}
+        </div>
+
+         <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb bg-light p-3 rounded shadow-sm">
+            {% if task %}
+                <!-- Project with tooltip for start and end date -->
+                <li class="breadcrumb-item" 
+                    data-bs-toggle="tooltip" 
+                    data-bs-placement="top" 
+                    title="Start: {{ task.milestone.project.start_date }} | End: {{ task.milestone.project.end_date }}">
+                    <i class="bi bi-folder me-2"></i>{{ task.milestone.project.name }}
+                </li>
+                <!-- Milestone with tooltip for start and end date -->
+                <li class="breadcrumb-item" 
+                    data-bs-toggle="tooltip" 
+                    data-bs-placement="top" 
+                    title="Start: {{ task.milestone.start_date }} | End: {{ task.milestone.end_date }}">
+                    <i class="bi bi-signpost me-2"></i>{{ task.milestone.name }}
+                </li>
+            {% else %}
+                <!-- Project with tooltip for start and end date -->
+                <li class="breadcrumb-item" 
+                    data-bs-toggle="tooltip" 
+                    data-bs-placement="top" 
+                    title="Start: {{ milestone.project.start_date }} | End: {{ milestone.project.end_date }}">
+                    <i class="bi bi-folder me-2"></i>{{ milestone.project.name }}
+                </li>
+                <!-- Milestone with tooltip for start and end date -->
+                <li class="breadcrumb-item" 
+                    data-bs-toggle="tooltip" 
+                    data-bs-placement="top" 
+                    title="Start: {{ milestone.start_date }} | End: {{ milestone.end_date }}">
+                    <i class="bi bi-signpost me-2"></i>{{ milestone.name }}
+                </li>
+            {% endif %}
+        </ol>
+        </nav>
+       <div class="container">
+    <form id="bulkForm" method="post" action="{% url 'task_list' milestone.id %}">
+        {% csrf_token %}
+        <!-- Header Section -->
+        <div class="d-flex justify-content-between align-items-center  mb-4 p-3 rounded-3 shadow-sm">
+            <div class="d-flex align-items-center gap-4">
+                <h4 class="mb-0 "><i class="bi bi-list-task me-2"></i>Task Manager</h4>
+                <span class="badge bg-white text-primary fs-6">{{ tasks.all|length }} Tasks</span>
+            </div>
+            
+            <!-- Controls -->
+            <div class="d-flex gap-3 align-items-center">
+                <div class="input-group input-group-sm shadow-sm" style="width: 250px;">
+                    <span class="input-group-text bg-white border-0"><i class="bi bi-search text-muted"></i></span>
+                    <input type="text" id="taskSearch" class="form-control border-0" 
+                           placeholder="Search tasks..." aria-label="Search">
+                </div>
+
+                <select id="statusFilter" class="form-select form-select-sm shadow-sm" style="width: 180px;">
+                    <option value="">All Statuses</option>
+                    <option value="not_started">Not Started</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="completed">Completed</option>
+                </select>
+
+                <div class="dropdown">
+                    <button class="btn btn-light btn-sm dropdown-toggle d-flex align-items-center gap-2 shadow-sm" 
+                            type="button" id="dropdownMenuButton" data-bs-toggle="dropdown">
+                        <i class="bi bi-gear"></i> Actions
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end mt-2 shadow-lg">
+                        <li>
+                            <button class="dropdown-item d-flex align-items-center gap-2 py-2" 
+                                    type="submit" name="delete_tasks" id="deleteSelected" disabled>
+                                <i class="bi bi-trash text-danger"></i> Delete Selected
+                            </button>
+                        </li>
+                        <li>
+                            <button class="dropdown-item d-flex align-items-center gap-2 py-2" 
+                                    type="submit" name="edit_tasks" id="editSelected" disabled>
+                                <i class="bi bi-pencil-square text-primary"></i> Edit Selected
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tasks Table -->
+        <div class="card border-0 shadow-sm">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-primary">
+                        <tr>
+                            <th class="ps-4" style="width: 40px;">
+                                <input type="checkbox" id="selectAll" class="form-check-input">
+                            </th>
+                            <th>Task Name</th>
+                            <th>Description</th>
+                            <th>Status</th>
+                            <th>Due Date</th>
+                            <th>Assigned To</th>
+                            <th class="text-end pe-4">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="taskTable" class="border-top-0">
+                        {% for task in tasks %}
+                        <tr class="task-row animate__animated animate__fadeIn" 
+                            data-status="{{ task.status }}"
+                            data-due-date="{{ task.due_date|date:'Y-m-d' }}">
+                            <td class="ps-4">
+                                <input type="checkbox" class="task-checkbox form-check-input" 
+                                       name="task_ids" value="{{ task.id }}">
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <i class="bi bi-card-text text-muted"></i>
+                                    <span class="fw-medium">{{ task.name }}</span>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="text-muted" data-bs-toggle="tooltip" 
+                                         title="{{ task.description }}">{{ task.description|truncatechars:10}}</span>
+                            </td>
+                            <td>
+                                <span class="badge rounded-pill d-flex align-items-center gap-2 fs-12 
+                                      {% if task.status == 'completed' %}bg-success-soft text-success
+                                      {% elif task.status == 'in_progress' %}bg-warning-soft text-warning
+                                      {% else %}bg-secondary-soft text-secondary{% endif %}">
+                                    <i class="bi 
+                                        {% if task.status == 'completed' %}bi-check-circle 
+                                        {% elif task.status == 'in_progress' %}bi-arrow-repeat 
+                                        {% else %}bi-clock{% endif %}"></i>
+                                    {{ task.get_status_display }}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <i class="bi bi-calendar-event text-muted"></i>
+                                    <span class="{% if task.is_overdue %}text-danger{% endif %}">
+                                        {{ task.end_date|date:"M d, Y" }}
+                                    </span>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="d-flex gap-2">
+                                    {% for user in task.assigned_to.all %}
+                                    <div class="avatar avatar-xs" data-bs-toggle="tooltip" 
+                                         title="{{ user.get_full_name }}">
+                                        <span class="avatar-initial ">
+                                            {{ user.username  }}
+                                        </span>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </td>
+                            <td class="pe-4">
+                                <div class="d-flex justify-content-end gap-2">
+                                    <a href="{% url 'manage_task_steps' task.id %}" 
+                                       class="btn btn-sm btn-light d-flex align-items-center gap-2"
+                                       data-bs-toggle="tooltip" title="Manage Steps & Issues">
+                                        <i class="bi bi-diagram-3"></i>
+                                        <span class="d-none d-md-inline">Steps</span>
+                                    </a>
+                                    <a href="#" class="btn btn-sm btn-light d-flex align-items-center gap-2">
+                                        <i class="bi bi-eye"></i>
+                                        <span class="d-none d-md-inline">View</span>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center py-5 text-muted">
+                                <i class="bi bi-inbox fs-1"></i>
+                                <p class="mt-3">No tasks found</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Pagination -->
+        <div class="d-flex justify-content-between align-items-center mt-4 px-3">
+            <div class="text-muted" id="selectedCount">0 selected</div>
+            <div class="d-flex gap-2">
+                <button class="btn btn-sm btn-light" disabled>
+                    <i class="bi bi-chevron-left"></i>
+                </button>
+                <div class="px-3 text-muted">Page 1 of 5</div>
+                <button class="btn btn-sm btn-light">
+                    <i class="bi bi-chevron-right"></i>
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<style>
+.bg-gradient-primary {
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+}
+
+.avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.avatar-xs {
+    width: 28px;
+    height: 28px;
+    font-size: 0.75rem;
+}
+
+.badge {
+    padding: 0.35rem 0.75rem;
+    letter-spacing: 0.05em;
+}
+
+.bg-success-soft {
+    background-color: rgba(16, 185, 129, 0.1) !important;
+}
+
+.bg-warning-soft {
+    background-color: rgba(245, 158, 11, 0.1) !important;
+}
+
+.bg-secondary-soft {
+    background-color: rgba(107, 114, 128, 0.1) !important;
+}
+
+.fs-12 {
+    font-size: 0.85rem;
+}
+
+.table-hover tbody tr {
+    transition: all 0.2s ease;
+}
+
+.table-hover tbody tr:hover {
+    transform: translateX(4px);
+    background-color: #f8f9fa !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.animate__animated {
+    animation-duration: 0.3s;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.animate__fadeIn {
+    animation-name: fadeIn;
+}
+</style>
+
+    </div>
+
+
+<script>
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const checkboxes = document.querySelectorAll('.task-checkbox');
+            const selectAll = document.getElementById('selectAll');
+            const deleteBtn = document.getElementById('deleteSelected');
+            const editBtn = document.getElementById('editSelected');
+            const searchInput = document.getElementById('taskSearch');
+            const statusFilter = document.getElementById('statusFilter');
+            const selectedCount = document.getElementById('selectedCount');
+
+            // Updated checkbox handling
+            function updateActionButtons() {
+                const checked = document.querySelectorAll('.task-checkbox:checked');
+                const checkedCount = checked.length;
+                const selected = document.querySelectorAll('.task-checkbox:checked').length;
+                selectedCount.textContent = `${selected} selected`;
+                // Enable/disable delete button based on selection
+                deleteBtn.disabled = checkedCount === 0;
+                
+                // Enable edit button only when 1-2 tasks are selected
+                editBtn.disabled = checkedCount === 0 || checkedCount > 1;
+            }
+            // Initialize Tooltips
+            const tooltips = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+            tooltips.forEach(tooltip => new bootstrap.Tooltip(tooltip));
+
+            selectAll.addEventListener('change', function(e) {
+                checkboxes.forEach(checkbox => checkbox.checked = e.target.checked);
+                updateActionButtons();
+            });
+
+            checkboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', updateActionButtons);
+            });
+
+            // Enhanced search and filter
+            function filterTasks() {
+                const searchTerm = searchInput.value.toLowerCase();
+                const status = statusFilter.value;
+                
+                document.querySelectorAll('.task-row').forEach(row => {
+                    const text = row.textContent.toLowerCase();
+                    const rowStatus = row.dataset.status;
+                    const matchesSearch = text.includes(searchTerm);
+                    const matchesStatus = !status || rowStatus === status;
+                    
+                    row.style.display = (matchesSearch && matchesStatus) ? '' : 'none';
+                });
+                updateActionButtons(); // Update buttons after filtering
+            }
+
+            searchInput.addEventListener('input', filterTasks);
+            statusFilter.addEventListener('change', filterTasks);
+
+            // Enhanced delete confirmation
+            deleteBtn.addEventListener('click', function(e) {
+                const checkedCount = document.querySelectorAll('.task-checkbox:checked').length;
+                if (checkedCount === 0) {
+                    e.preventDefault();
+                    return;
+                }
+                
+                if (!confirm(`Are you sure you want to delete ${checkedCount} selected task(s)?\nThis action cannot be undone.`)) {
+                    e.preventDefault();
+                }
+            });
+
+            // Edit button restriction enforcement
+            editBtn.addEventListener('click', function(e) {
+                const checkedCount = document.querySelectorAll('.task-checkbox:checked').length;
+                if (checkedCount > 2) {
+                    e.preventDefault();
+                    alert('Maximum 2 tasks can be edited at once. Please select fewer tasks.');
+                }
+            });
+        });
+</script>
+    <style>
+        .task-row:hover {
+            background-color: #f8f9fa;
+            cursor: pointer;
+        }
+
+        .badge {
+            font-size: 0.9em;
+            padding: 0.5em 0.75em;
+        }
+
+        .table-hover tbody tr:hover {
+            background-color: #f1f1f1;
+        }
+
+        #taskSearch, #statusFilter {
+            max-width: 300px;
+        }
+
+        .dropdown-menu {
+            min-width: 150px;
+        }
+    </style>
+
+
+{% endblock %}

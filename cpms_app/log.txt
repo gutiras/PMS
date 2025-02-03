@@ -1,0 +1,229 @@
+
+ 
+  
+   
+    
+       
+        
+           
+            
+                
+                    'milestone': milestone,
+                    'project': project,
+                    else:
+                    issues = TaskIssue.objects.filter(id__in=issue_ids, step=step)
+                    object_id=team.id,
+                    object_id=user.id,
+                    object_name=team.name,
+                    timestamp=now()
+                    timestamp=timezone.now(),
+                    user=request.user,
+                    user=user,
+                "duration": format_duration(duration),
+                "team_name": team_name,
+                'last_milestone':last_milestone,
+                'project': project,
+                'teams': Team.objects.all(),
+                'title':"Create"
+                )
+                ActivityLog.objects.create(
+                align="center",
+                else:
+                font=dict(size=10),
+                object_id=chat_room.id,
+                object_id=project.id,
+                object_id=user.id,
+                object_name=chat_room.name,
+                object_name=project.name,
+                object_name=user.username,
+                return redirect('chat_room_detail', room_id=room_id)
+                return redirect('user_edit', user_id=user.id)
+                return render(request, 'milestones/milestone_form.html', {
+                showarrow=False,
+                showlegend=False
+                text=f" {str(row['artificial_timestamp'].strftime('%Y-%m-%d %H:%M:%S'))}({row['user']})<br>{formatted_details}",
+                timestamp=now()
+                timestamp=now(),
+                timestamp=timezone.now(),
+                user=request.user,
+                y=[row['artificial_timestamp']] * 2,
+                y=row['artificial_timestamp'],
+                })
+            "assigned_to": [user.username for user in milestone.assigned_to.all()],  # List of usernames
+            "delayed_days": f"{delayed_days} days delayed" if delayed_days else None,
+            "description": milestone.description or "No description provided",
+            "description": milestone.description,
+            "end_date": milestone.end_date,
+            "id": milestone.id,
+            "name": milestone.name,
+            "start_date": milestone.start_date,
+            # Calculate duration
+            # Calculate progress
+            )
+            ))
+            ActivityLog.objects.create(
+            activity_history.append({
+            activity_type=activity_type,
+            description=description,
+            else:
+            end_date=end_date,
+            except FileNotFoundError:
+            fig.add_annotation(
+            fig.add_trace(go.Scatter(
+            if new_file:
+            if step_name.strip():
+            message.content = new_content
+            message.save()
+            messages.error(request, "Task name is required.")
+            messages.error(request, 'Start date cannot be later than end date!')
+            messages.success(request, 'Message updated successfully!')
+            name=name,
+            object_id=milestone.id,
+            object_id=project.id,
+            object_id=team.id,  # Team ID
+            object_name=milestone.name,
+            object_name=project.name,
+            object_name=team.name,  # Team name
+            project.length = project.project_length()
+            project.progress = project.calculate_progress()
+            project.remaining_days = project.days_left()
+            project.save()
+            return redirect('chat_room_detail', room_id=room_id)
+            return redirect('project_list')
+            return redirect('team_create')
+            return redirect('user_create')
+            return redirect('user_detail', user_id)
+            return redirect('user_list')
+            return redirect(f"{request.META.get('HTTP_REFERER', '/')}")
+            return redirect(f'{request.path}?folder={current_folder}')
+            return render(request, "tasks/task_create.html", {"milestone": milestone, "users": users})
+            return render(request, 'milestones/milestone_form.html', {
+            return render(request, 'projects/project_form.html', {
+            return render(request, 'projects/project_form.html', {'teams': teams, 'title': title})
+            start_date=start_date,
+            task.assigned_to.set(User.objects.filter(id__in=assigned_to_ids))
+            teams = Team.objects.all()  # Fetch teams again in case of error
+            timestamp=now()
+            timestamp=now(),
+            timestamp=timezone.now(),
+            try:
+            user=request.user,
+            }
+            })
+        # Success message
+        # Validate required fields
+        'activity_logs': activity_logs,
+        'milestones': milestones,
+        'project': project,
+        'projects': projects,
+        'search_query': search_query,
+        'teams': teams,
+        'user': request.user,
+        'user': user,
+        'users': users,
+        )
+        ),
+        ActivityLog.objects.create(
+        assigned_to_ids = request.POST.getlist("assigned_to")
+        can_be_extended = request.POST.get('can_be_extended') == 'on'
+        changes = {}
+        days_left = (milestone.end_date - today).days if milestone.end_date and milestone.end_date > today else None
+        delayed_days = (today - milestone.end_date).days if milestone.end_date and milestone.end_date < today else None
+        description = request.POST.get("description")
+        description = request.POST.get("description", "").strip()
+        description = request.POST.get('description')
+        else:
+        end_date = parse_date(request.POST.get('end_date'))
+        except Exception as e:
+        except User.DoesNotExist:
+        fig = go.Figure()
+        file_or_folder = request.POST.get('file_or_folder')
+        for i, step_name in enumerate(steps, start=1):
+        for project in projects:
+        if assigned_to_ids:
+        if description:
+        if name:
+        if not changes:
+        if not name or not start_date or not end_date or not team_id:
+        if not name:
+        if start_date > end_date:
+        milestones = project.milestones.all()
+        name = request.POST.get("name")
+        name = request.POST.get('name')
+        password = request.POST.get('password')
+        project.save()
+        projects = Project.objects.filter(assigned_team=team)
+        return redirect('chat_room_detail', room_id=room_id)
+        return redirect('milestone_list', project_id=project.id)
+        return redirect('project_list')
+        return redirect('team_list')
+        return redirect(f'{request.path}?folder={current_folder}')
+        start_date = parse_date(request.POST.get('start_date'))
+        status = request.POST.get("status")
+        status = request.POST.get("status", "not_started")
+        status_display = dict(Milestone.STATUS_CHOICES).get(milestone.status, milestone.status)
+        steps = request.POST.getlist("steps[]")
+        team = Team.objects.get(id=team_id)
+        team.save()
+        timestamp=now()
+        total_milestones = 0
+        try:
+        user=request.user,
+        user_id = request.POST.get('user_id')
+        username = request.POST.get('username')
+        xaxis_title="Project",
+        }
+        })
+    # Task section
+    )
+    ActivityLog.objects.create(
+    chat_room = get_object_or_404(ChatRoom, id=room_id)
+    context = {
+    df = pd.DataFrame(data)
+    else:
+    end_date = request.GET.get("end_date")
+    fig = go.Figure(
+    fig = go.Figure()
+    fig.update_layout(
+    for project in projects:
+    for team in teams:
+    if end_date:
+    if project_id:
+    if request.method == "POST":
+    if request.method == 'POST':
+    if search_query:
+    if start_date:
+    if team_id:
+    message = get_object_or_404(Message, id=message_id)
+    milestone = get_object_or_404(Milestone, id=milestone_id)
+    names = [project.name for project in projects]
+    project = get_object_or_404(Project, id=project_id)
+    project_id = request.GET.get("project")
+    projects = Project.objects.all()
+    return HttpResponseForbidden("Invalid request.")
+    return activity_history
+    return fig.to_html()
+    return redirect('chat_room_detail', room_id=room_id)
+    return render(request, 'milestones/milestone_form.html', {
+    return response
+    search_query = request.GET.get('search', '')
+    sheet = workbook.active
+    start_date = request.GET.get("start_date")
+    task = get_object_or_404(Task, id=task_id)
+    team = get_object_or_404(Team, id=team_id)
+    team_id = request.GET.get("team")
+    teams = Team.objects.all()
+    try:
+    user = get_object_or_404(User, id=user_id)
+    user = request.user
+    users = User.objects.all()
+    workbook = openpyxl.Workbook()
+    }
+    })
+@login_required
+@project_leader_required
+@role_required(['super_admin', 'admin'])
+@role_required(['super_admin','admin','staff'])
+@role_required(['super_admin','admin'])
+from django.http import HttpResponseForbidden
+from django.http import JsonResponse

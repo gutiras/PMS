@@ -1,0 +1,249 @@
+{% extends 'home.html' %}
+{% block title %}Milestones{% endblock %}
+{% block content %}
+     {% if messages %}
+        <!-- Iterate over messages -->
+        {% for message in messages %}
+            <!-- Check if message tag is 'danger' (error message) -->
+            {% if message.tags == 'danger' %}
+                <!-- Modal for Error Message -->
+                <div class="modal fade" id="errorModal" tabindex="-1" aria-labelledby="errorModalLabel" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="errorModalLabel">Error</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                {{ message }}
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <!-- Normal Alerts for Non-Error Messages -->
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+    <div class="container my-4">
+        <div class="breadcrumb">
+            {% block breadcrumb %}
+            <!-- Default breadcrumb (optional) -->
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a class="text-decoration-none" href="{% url 'home' %}">Home</a></li>
+                    <li class="breadcrumb-item"><a class="text-decoration-none" href="{% url 'project_list' %}">Projects</a></li>
+                    <li class="breadcrumb-item"><a class="text-decoration-none" href="{% url 'milestone_list' project.id %}">Milestones</a></li>
+                    <li class="breadcrumb-item">{{title}}</li>
+                </ol>
+            </nav>
+            {% endblock %}
+        </div>    
+        <!-- Milestone Form -->
+        <div class="container">
+            <div class="row g-2">
+                <div class="col-md-8 d-flex">
+                    <div class="col-md-2">
+                        <a href="javascript:history.back();" class="text-decoration-none">
+                            <i class="bi bi-arrow-left-circle-fill"></i> Back 
+                        </a>
+                    </div>
+                    <div class="col-md-10">
+                        {% if messages %}  
+                            {% for message in messages %}
+                                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                </div>
+        
+                <!-- Milestone Form -->
+                <div class="col-lg-8">
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">Milestone Details</h5>
+                        </div>
+                        <div class="card-body">
+                            <form method="post" novalidate class="needs-validation">
+                                {% csrf_token %}
+                                <!-- Milestone Name -->
+                                 
+                                <div class="mb-4 row">
+                                    <label for="name" class="col-sm-3 col-form-label">Milestone Name</label>
+                                    <div class="col-sm-9">
+                                        <input type="text" class="form-control shadow-sm" id="name" name="name" 
+                                            placeholder="Enter milestone name" 
+                                            value="{{ milestone.name|default:'' }}" 
+                                            required 
+                                            pattern="^[A-Za-z][A-Za-z0-9 ]{3,50}$"
+                                            minlength="4"
+                                            maxlength="50"
+                                            title="Milestone name must start with a letter, and be between 4 and 50 characters long. Only letters, numbers, and spaces are allowed.">
+                                        <div class="invalid-feedback">
+                                            Milestone name must start with a letter and be between 4 and 16 characters and no special characters(',''/''_''*')
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Description -->
+                                <div class="mb-4 row">
+                                    <label for="description" class="col-sm-3 col-form-label">Milestone Description</label>
+                                    <div class="col-sm-9">
+                                        <textarea class="form-control shadow-sm" id="description" name="description"
+                                                placeholder="Enter milestone description" 
+                                                required
+                                                minlength="10" 
+                                                maxlength="500">{{ milestone.description }}</textarea>
+                                        <div class="invalid-feedback">
+                                            Milestone description must be between 10 and 500 characters.
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Start Date -->
+                                <div class="mb-4 row">
+                                    <label for="start_date" class="col-sm-3 col-form-label">Start Date</label>
+                                    <div class="col-sm-9">
+                                        <input type="date" class="form-control shadow-sm" id="start_date" 
+                                            name="start_date"
+                                            value="{{ milestone.start_date|date:'Y-m-d' }}" required>
+                                        <div class="invalid-feedback">
+                                            Start date is required.
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- End Date -->
+                                <div class="mb-4 row">
+                                    <label for="end_date" class="col-sm-3 col-form-label">End Date</label>
+                                    <div class="col-sm-9">
+                                        <input type="date" class="form-control shadow-sm" id="end_date" name="end_date" 
+                                            value="{{ milestone.end_date|date:'Y-m-d' }}" required>
+                                        <div class="text-danger" id="end-date-error" style="display: none;">
+                                            The end date is required.
+                                        </div>
+                                    </div>
+                                </div>    
+                                <!-- Actions -->
+                                <div class="d-flex justify-content-end gap-3">
+                                    <a href="{% url 'milestone_list' project.id %}" class="btn btn-outline-secondary">
+                                        <i class="bi bi-arrow-left"></i> Cancel
+                                    </a>
+                                    <button type="submit" class="btn btn-success">
+                                        <i class="bi bi-check-circle"></i> Save Milestone
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                {% if title == "Create" %}  
+                <div class="col-lg-3">
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">The Last Milestone Details</h5>
+                        </div>
+                        <div class="card-body d-flex align-items-center">
+                            <div>
+                                <p><strong>Name:</strong> {{ last_milestone.name }}</p>
+                                <p>
+                                    <strong>Description:</strong> 
+                                    <span tabindex="0" class="text-primary" data-bs-toggle="popover" 
+                                        data-bs-trigger="hover focus" title="Full Description" 
+                                        data-bs-content="{{ last_milestone.description }}">
+                                        {{ last_milestone.description|truncatewords:6 }}
+                                    </span>
+                                </p>
+                                <p><strong>Start Date:</strong> {{ last_milestone.start_date }}</p>
+                                <p><strong>End Date:</strong> {{ last_milestone.end_date }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+             </div>
+        </div>
+    </div>
+    <!--  Full Description Display -->
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
+            var popoverList = popoverTriggerList.map(function(popoverTriggerEl) {
+                return new bootstrap.Popover(popoverTriggerEl);
+            });
+        });
+    </script>
+    <!--  Form validation -->
+    <script>
+        (function () {
+            'use strict';
+            
+            var forms = document.querySelectorAll('.needs-validation');
+            
+            Array.prototype.slice.call(forms)
+            .forEach(function (form) {
+                form.addEventListener('submit', function (event) {
+                    const startDate = document.getElementById('start_date').value;
+                    const endDate = document.getElementById('end_date').value;
+
+                    const start = new Date(startDate);
+                    const end = new Date(endDate);
+
+                    // Get the custom error message container
+                    const errorMessage = document.getElementById('end-date-error');
+
+                    // Clear previous error
+                    errorMessage.style.display = 'none';
+                    document.getElementById('end_date').classList.remove('is-invalid');
+                    
+                    
+                    // End date should not be before start date
+                    if (end < start) {
+                        errorMessage.textContent = "End date cannot be before the start date.";
+                        errorMessage.style.display = 'block';
+                        document.getElementById('end_date').classList.add('is-invalid');
+                        event.preventDefault(); // Prevent form submission
+                        return;
+                    }
+
+                    // Ensure the minimum duration is more than 5 days (at least 6 days)
+                    const timeDiff = (end - start) / (1000 * 3600 * 24); // Difference in days
+                    if (timeDiff < 1) {
+                        errorMessage.textContent = "The milestone duration should be at least 1 day.";
+                        errorMessage.style.display = 'block';
+                        document.getElementById('end_date').classList.add('is-invalid');
+                        event.preventDefault(); // Prevent form submission
+                        return;
+                    }
+                    
+                    // Ensure form validity if all conditions are passed
+                    if (!form.checkValidity()) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                    }
+                    
+                    form.classList.add('was-validated');
+                    // If end date is not provided
+                    if (!endDate) {
+                        errorMessage.textContent = "End date required";
+                        errorMessage.style.display = 'block';
+                        document.getElementById('end_date').classList.add('is-invalid');
+                        event.preventDefault(); // Prevent form submission
+                        return;
+                    }
+                }, false);
+            });
+        })();
+    </script>
+{% endblock %}
