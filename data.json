@@ -2526,9 +2526,7 @@
     "updated_object_data": null,
     "created_object_data": null
   }
-}
-]
-[
+},
 {
   "model": "cpms_app.profile",
   "pk": 1,
