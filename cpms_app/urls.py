@@ -31,7 +31,7 @@ urlpatterns = [
 
     
     path("", views.custom_login, name="login"),
-    path("/home", views.landing_page, name="home"),
+    path("home", views.landing_page, name="home"),
     path("admin_landing_page/", views.admin_landing_page, name="admin_landing_page"),
     path("other_landing_page/", views.other_landing_page, name="other_landing_page"),
     path('gantt/<int:project_id>/', views.gantt_chart, name='gantt_chart'),
