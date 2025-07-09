@@ -1,7 +1,7 @@
 
 from pathlib import Path
 from django.contrib.messages import constants as messages
-
+import os
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -17,10 +17,12 @@ DEBUG = False
 if DEBUG:
     STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
     
-import os
+
 
 ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "127.0.0.1,localhost").split(",")
-
+CSRF_TRUSTED_ORIGINS = [
+    "https://pms-z704.onrender.com",
+]
 
 
 # Application definition
