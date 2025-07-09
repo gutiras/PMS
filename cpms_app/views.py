@@ -52,54 +52,321 @@ from datetime import datetime, date
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.urls import reverse
+from plotly import graph_objects as go
+import numpy as np  # Ensure numpy is imported
+from django.views.generic import ListView, DetailView
+
+
+def dashboard(request):
+    return render(request, 'reports/graphs_dashboard.html')
+def tasks_timeline(request):
+    project_id = request.GET.get('project_id')
+    milestone_id = request.GET.get('milestone_id')
+
+    try:
+        project = Project.objects.get(id=project_id)
+        milestone = Milestone.objects.get(id=milestone_id, project_id=project_id)
+    except Project.DoesNotExist:
+        return JsonResponse({"error": "Project not found"}, status=404)
+    except Milestone.DoesNotExist:
+        return JsonResponse({"error": "Milestone not found for the given project"}, status=404)
+
+    # Fetch tasks for the selected project and milestone
+    tasks = Task.objects.filter(milestone=milestone)
+
+    if not tasks.exists():
+        return render(request, 'index.html', {
+            'chart_html': None,
+            'milestone': milestone.name,
+            'message': "No tasks available for this milestone."
+        })
+
+    # Prepare data for the Gantt chart
+    data = []
+    for task in tasks:
+        assigned_users = ', '.join([user.username for user in task.assigned_to.all()]) if task.assigned_to.exists() else 'Unassigned'
+        
+        data.append({
+            'Task': task.name,
+            'Start': task.start_date,
+            'Finish': task.end_date,
+            'Assigned To': assigned_users,
+        })
+
+    # Convert data to a pandas DataFrame
+    df = pd.DataFrame(data)
+
+    if df.empty:
+        return JsonResponse({"error": "No tasks found"}, status=400)
+
+    # Create the Gantt chart
+    fig = px.timeline(df, x_start="Start", x_end="Finish", y="Task", color="Assigned To", title=f"{project.name} - {milestone.name}")
+    fig.update_yaxes(categoryorder="total ascending")  # Sort tasks by start date
+
+    # Convert figure to JSON manually
+    fig_json = json.loads(json.dumps(fig.to_plotly_json(), default=lambda o: o.tolist() if isinstance(o, np.ndarray) else str(o)))
+
+    return JsonResponse(fig_json, safe=False)
+
+def task_progress(request):
+    project_id = request.GET.get('project_id')
+    milestone_id = request.GET.get('milestone_id')
+
+    # Fetch tasks for the selected project and milestone
+    tasks = Task.objects.filter(milestone__project_id=project_id, milestone_id=milestone_id)
+
+    # Prepare data
+    task_names = [task.name for task in tasks]
+    progress = [task.progress for task in tasks]
+    days_left = [task.remaining_days for task in tasks]
+
+    # Create bar chart
+    fig = go.Figure()
+    fig.add_trace(go.Bar(
+        x=task_names,
+        y=progress,
+        name='Progress (%)',
+        marker_color='#4CAF50'
+    ))
+    fig.add_trace(go.Bar(
+        x=task_names,
+        y=days_left,
+        name='Days Left',
+        marker_color='#2196F3'
+    ))
+    fig.update_layout(
+        title='Task Progress',
+        barmode='group',
+        xaxis_title='Tasks',
+        yaxis_title='Progress/Days Left'
+    )
+
+    return JsonResponse(fig.to_plotly_json(), safe=False)
+def team_task_allocation(request):
+    team_id = request.GET.get('team_id')
+
+    # Fetch team members and their tasks
+    team = Team.objects.get(id=team_id)
+    members = team.members.all()
+
+    # Prepare data
+    member_names = [member.username for member in members]
+    task_counts = [Task.objects.filter(assigned_to=member).count() for member in members]
+
+    # Create bar chart
+    fig = go.Figure()
+    fig.add_trace(go.Bar(
+        x=member_names,
+        y=task_counts,
+        name='Tasks Assigned',
+        marker_color='#FFA500'
+    ))
+    fig.update_layout(
+        title=f'Task Allocation for Team: {team.name}',
+        xaxis_title='Team Members',
+        yaxis_title='Number of Tasks'
+    )
+
+    return JsonResponse(fig.to_plotly_json(), safe=False)
+def project_progress(request):
+    projects = Project.objects.all()
+    
+    # Prepare data
+    project_names = [p.name for p in projects]
+    progress = [p.calculate_progress() for p in projects]
+    days_left = [p.days_left() for p in projects]
+
+    # Create Plotly figure
+    fig = go.Figure()
+    fig.add_trace(go.Bar(
+        x=project_names,
+        y=progress,
+        name='Progress (%)'
+    ))
+    fig.add_trace(go.Bar(
+        x=project_names,
+        y=days_left,
+        name='Days Left'
+    ))
+    fig.update_layout(barmode='group', title='Project Progress')
+
+    return JsonResponse(fig.to_plotly_json(), safe=False)
+def project_timelinee(request):
+    projects = Project.objects.all()
+    
+    # Prepare data for the Gantt chart
+    data = []
+    for project in projects:
+        data.append({
+            'Project': project.name,
+            'Start': project.start_date,
+            'Finish': project.end_date,
+            'Assigned To': project.assigned_team.name if project.assigned_team else "Unassigned",
+        })
+    
+    # Convert data to a pandas DataFrame
+    df = pd.DataFrame(data)
+
+    if df.empty:
+        return JsonResponse({"error": "No projects found"}, status=400)
+
+    # Create the Gantt chart
+    fig = px.timeline(df, x_start="Start", x_end="Finish", y="Project", color="Assigned To", title="Project Timeline")
+    fig.update_yaxes(categoryorder="total ascending")  # Sort milestones by start date
+    
+    # Convert figure to JSON manually
+    fig_json = json.loads(json.dumps(fig.to_plotly_json(), default=lambda o: o.tolist() if isinstance(o, np.ndarray) else str(o)))
+
+    return JsonResponse(fig_json, safe=False)
+
+
+def project_allocation(request):
+    teams = Team.objects.annotate(num_projects=Count('projects'))
+    
+    # Prepare data
+    team_names = [team.name for team in teams]
+    num_projects = [team.num_projects for team in teams]
+
+    # Create pie chart
+    fig = go.Figure(data=[go.Pie(
+        labels=team_names,
+        values=num_projects,
+        hole=.3
+    )])
+    fig.update_layout(title='Projects per Team')
+
+    return JsonResponse(fig.to_plotly_json(), safe=False)
+# views.py
+def get_projects(request):
+    projects = Project.objects.values('id', 'name')
+    return JsonResponse(list(projects), safe=False)
+
+def get_milestones(request):
+    project_id = request.GET.get('project_id')
+    milestones = Milestone.objects.filter(project_id=project_id).values('id', 'name')
+    return JsonResponse(list(milestones), safe=False)
+
+def get_teams(request):
+    teams = Team.objects.values('id', 'name')
+    return JsonResponse(list(teams), safe=False)
 
 
 def landing_page(request):
     if request.user.is_staff:  # Check if the user is an admin (staff)
         return admin_landing_page(request)
     else:
-        return other_landing_page(request)  # Render for non-admin users
-    
+        return other_landing_page(request)  # Render for non-admin users 
+def is_team_leader(user):
+    return user.teams.filter(leader=user).exists()
+
+from collections import defaultdict 
 def other_landing_page(request):
     user = request.user
-    # Project Section
-    projects = Project.objects.filter(Q(assigned_team__members=user))
-    total_projects=projects.count()
-    completed_projects = projects.filter(Q(status='completed'))
-    pending_projects = projects.filter(Q(status='pending'))
-    ongoing_projects = projects.filter(status = "in_progress").order_by("-updated_at")
+    context = {}
 
-    user_teams = Team.objects.filter(members=request.user).count()
+    # Basic User Information
+    context['user'] = user
+    is_team_leaderr=is_team_leader(user)
+    context['is_team_leader'] =is_team_leaderr
+    # Fetch the user's team (if any)
+    user_team = Team.objects.filter( leader=user)  
+    user_teams =Team.objects.filter(members=user)
+    active_projects = Project.objects.filter(
+        assigned_team__in=user_team,
+    ).annotate(
+        total_milestones=Count('milestones'),
+        completed_milestones=Count('milestones', filter=Q(milestones__status='completed'))
+    )  
+    if not is_team_leaderr:
+        user_teams =Team.objects.filter(members=user)
 
-    recent_milestones = Milestone.objects.filter(Q(assigned_to=user) ,  Q(status__in=["pending", "in_progress"] )).select_related("project").distinct().order_by("created_at")[:5]
-    # Q(updates__updated_by=user),
-    # Task section
-    milestones=Milestone.objects.filter(Q(assigned_to=user))
-    total_milestones=milestones.count()
-    ongoing_milestones = milestones.filter(assigned_to=user, status="in_progress")
-    pending_milestones = milestones.filter(assigned_to=user, status="pending")
-    completed_milestones = milestones.filter(assigned_to=user, status="completed")
+        active_projects = Project.objects.filter(
+            assigned_team__in=user_teams, status='in_progress'
+        ).annotate(
+            total_milestones=Count('milestones'),
+            completed_milestones=Count('milestones', filter=Q(milestones__status='completed'))
+        )
+        
+    projects=Project.objects.filter(
+            assigned_team__in=user_teams)
+    context['user_teams'] = Team.objects.filter(members=user).count()
+    context['active_projects'] = active_projects
+    context['user_projects'] = projects.count()
 
-    # Task section
-    teams=Team.objects.filter(Q(members=user))
+
+    # Task Overview (Tasks assigned to the user)
+    user_tasks = Task.objects.filter(
+        assigned_to=user,
+        status__in=['not_started', 'in_progress']
+    ).order_by('-end_date')[:5]
+    context['recent_tasks'] = user_tasks
+
+    not_started_tasks_count = Task.objects.filter(
+        assigned_to=user,
+        status='not_started'
+    ).count()
+    completed_tasks = Task.objects.filter(
+        assigned_to=user,
+        status='completed'
+    ).count()
+    
 
 
-    # Context to pass to the template
-    context = {
-        "teams":teams,
-        "ongoing_projects": ongoing_projects,  
-        "projects":projects, 
-        "recent_milestones": recent_milestones,
-        "ongoing_milestones": ongoing_milestones,
-        "pending_milestones": pending_milestones,
-        "total_milestones":total_milestones,
-        "milestones":milestones,
-        "completed_milestones": completed_milestones,
-        "user_teams":user_teams,
-        "total_projects":total_projects,
-        "completed_projects":completed_projects,
-        "pending_projects":pending_projects,
-    }
+    context['pending_tasks'] = not_started_tasks_count
+    context['completed_tasks'] = completed_tasks
+    context['ongoing_tasks'] = user_tasks.count()-not_started_tasks_count
+
+    # Recent Activity (Activities related to the user's projects/tasks)
+    recent_activities = ActivityLog.objects.filter(
+        Q(user=user) | Q(object_id__in=user_tasks.values_list('id', flat=True))
+    ).order_by('-timestamp')[:5]
+    context['recent_activities'] = recent_activities
+
+    
+    # Upcoming Deadlines (Tasks and milestones due soon)
+    upcoming_deadlines = Task.objects.filter(
+        assigned_to=user,
+        end_date__gte=timezone.now().date()
+    ).order_by('end_date')[:5]
+    context['upcoming_deadlines'] = upcoming_deadlines
+    
+    # Team Availability (for team leaders)
+    if user_team:
+        team_members_dict = defaultdict(lambda: {'task_count': 0, 'team_names': []})
+
+        for team in user_team:
+            members = team.members.annotate(
+                task_count=Count('tasks', filter=Q(tasks__status__in=['not_started', 'in_progress']))
+            ).values('id', 'username', 'task_count')
+
+            for member in members:
+                user_id = member['id']
+                if user_id not in team_members_dict:
+                    team_members_dict[user_id].update({
+                        'id': user_id,
+                        'username': member['username'],
+                        'task_count': member['task_count'],
+                    })
+                if team.name not in team_members_dict[user_id]['team_names']:
+                    team_members_dict[user_id]['team_names'].append(team.name)
+
+        context['team_members'] = list(team_members_dict.values())
+    
+    # Task Progress (Steps and issues for user's tasks)
+    for task in user_tasks:
+        task.total_steps = task.steps.count()
+        task.completed_steps = task.steps.filter(status='completed').count()
+       
+        task.open_issues = TaskIssue.objects.filter(step__task=task, resolved=False).count()
+
+    # Milestone Progress (For active projects)
+    for project in active_projects:
+        project.progress = (
+            (project.completed_milestones / project.total_milestones * 100)
+            if project.total_milestones > 0
+            else 0
+        )
+
     return render(request, 'landing_page.html',context)
 def admin_activity_view(request):
     # Get filter parameters
@@ -112,43 +379,41 @@ def admin_activity_view(request):
     # Base query
     activities = ActivityLog.objects.all()
 
-    # Apply search query filter
+    # Apply filters
     if search_query:
         activities = activities.filter(
             Q(activity_description__icontains=search_query) |
             Q(activity_type__icontains=search_query)
         )
 
-    # Apply user filter
     if user_filter:
         activities = activities.filter(user_id=user_filter)
 
-    # Apply project filter
     if project_filter:
         activities = activities.filter(object_id=project_filter, activity_type__in=['create_project', 'edit_project', 'delete_project'])
 
-    # Apply milestone filter
     if milestone_filter:
         activities = activities.filter(object_id=milestone_filter, activity_type__in=['milestone_created', 'milestone_updated', 'milestone_deleted'])
 
-    # Apply activity type filter
     if activity_type_filter:
         activities = activities.filter(activity_type=activity_type_filter)
 
-    # Order activities by timestamp
+    # Order by timestamp
     activities = activities.order_by('-timestamp')
 
-    # Get dropdown choices
+    # Dropdown choices
     users = User.objects.all()
     projects = Project.objects.all()
-    milestones = Milestone.objects.all()
+    milestones = Milestone.objects.filter(project_id=project_filter) if project_filter else []
+    tasks = Task.objects.filter(milestone_id=milestone_filter) if milestone_filter else []
     activity_choices = dict(ActivityLog.ACTIVITY_CHOICES)
 
     context = {
-        'activities': activities,  # Send all activities (no pagination as DataTable handles it)
+        'activities': activities,
         'users': users,
         'projects': projects,
         'milestones': milestones,
+        'tasks': tasks,
         'activity_choices': activity_choices,
         'search_query': search_query,
         'user_filter': user_filter,
@@ -159,6 +424,16 @@ def admin_activity_view(request):
 
     return render(request, 'admin/activity_view.html', context)
 
+# AJAX Views for Dynamic Filtering
+def get_milestones(request):
+    project_id = request.GET.get("project_id")
+    milestones = Milestone.objects.filter(project_id=project_id).values("id", "name")
+    return JsonResponse(list(milestones), safe=False)
+
+def get_tasks(request):
+    milestone_id = request.GET.get("milestone_id")
+    tasks = Task.objects.filter(milestone_id=milestone_id).values("id", "name")
+    return JsonResponse(list(tasks), safe=False)
 def admin_landing_page(request):
     # User role check
     user = request.user
@@ -168,7 +443,14 @@ def admin_landing_page(request):
     ongoing_projects = Project.objects.filter(status='in_progress').count()
     completed_projects = Project.objects.filter(status='completed').count()
     pending_projects = Project.objects.filter(status='pending').count()
-
+     # Get ongoing projects with their in-progress milestones
+    
+    # Fetch ongoing projects
+    ongoing_projectss = Project.objects.filter(status='in_progress').prefetch_related('milestones')
+    
+    # Attach in-progress milestone to each project
+    for project in ongoing_projectss:
+        project.in_progress_milestone = project.milestones.filter(status='in_progress').first()
     # Statistics for Teams
     total_teams = Team.objects.count()
     teams_with_no_projects = Team.objects.filter(projects__isnull=True).count()
@@ -208,6 +490,8 @@ def admin_landing_page(request):
         'users_without_milestones': users_without_milestones,
         'users_in_more_than_2_teams': users_in_more_than_2_teams,
         'recent_activities':recent_activities,
+        'ongoing_projectss': ongoing_projectss,
+
         
     }
 
@@ -342,290 +626,21 @@ def generate_filtered_excel(request):
     return response
 
 @login_required
-def dashboard(request):
-    projects = Project.objects.all()
-    teams = Team.objects.all()
-
-    # Determine the active tab based on the GET parameters
-    active_tab = "project_status"  # Default tab
-    if request.GET.get('project_id'):
-        active_tab = "milestones_by_status"
-    elif request.GET.get('team_id'):
-        active_tab = "team_contribution"
-
-    # Get the selected project and generate the chart
-    selected_project_id = request.GET.get('project_id')
-    project_milestones_chart = milestones_status_chart(project_id=selected_project_id) if selected_project_id else milestones_status_chart()
-
-    # Get the selected team and generate the chart
-    selected_team_id = request.GET.get('team_id')
-    team_contrib_chart = team_contribution_chart(team_id=selected_team_id) if selected_team_id else team_contribution_chart()
-    
-    # Context for the template
-    context = {
-        'teams': teams,
-        'team_contrib_chart': team_contrib_chart,
-        'projects': projects,
-        'project_milestones_chart': project_milestones_chart,
-        "project_status_chart": project_status_chart(),
-        "milestones_status_chart": milestones_status_chart(),
-        "team_contribution_chart": team_contribution_chart(),
-        "project_progress_chart": project_progress_chart(),
-        "remaining_days_chart": remaining_days_chart(),
-        "delayed_projects_chart": delayed_projects_chart(),
-        "effort_accuracy_chart": effort_accuracy_chart(),
-        "milestones_completed_chart": milestones_completed_chart(),
-        "team_milestone_allocation_chart": team_milestone_allocation_chart(),
-        "active_tab": active_tab,  # Pass the active tab to the template
-    }
-    return render(request, "dashboard.html", context)
-
-
-
-def project_status_chart():
-    status_counts = Project.objects.values("status").annotate(count=Count("status"))
-    labels = [entry["status"].replace("_", " ").capitalize() for entry in status_counts]
-    values = [entry["count"] for entry in status_counts]
-
-    fig = go.Figure(
-        go.Pie(
-            labels=labels,
-            values=values,
-            hole=0.3,
-            textinfo="label+value",  # Display the label and the actual count
-            textposition="inside"
-        )
-    )
-    fig.update_layout(title="Project Status Distribution")
-    return fig.to_html()
-
-def milestones_status_chart(project_id=None):
-    # Filter milestones by project_id if it's provided, else all milestones
-    if project_id:
-        milestone_counts = Milestone.objects.filter(project_id=project_id).values("status").annotate(count=Count("status"))
-    else:
-        milestone_counts = Milestone.objects.values("status").annotate(count=Count("status"))
-
-    # Prepare data for the chart
-    statuses = [entry["status"].capitalize() for entry in milestone_counts]
-    counts = [entry["count"] for entry in milestone_counts]
-
-    fig = go.Figure(
-        go.Bar(
-            x=statuses,
-            y=counts,
-            marker_color=["blue", "orange", "green"],  # You can add more or modify colors as needed
-        )
-    )
-    fig.update_layout(
-        title="Task Status Distribution", 
-        xaxis_title="Status", 
-        yaxis_title="Count"
-    )
-    
-    return fig.to_html()
-
-def team_contribution_chart(team_id=None):
-    if team_id:
-        team = Team.objects.get(id=team_id)
-        members = team.members.all()
-        member_milestone_counts = []
-        total_milestones = Milestone.objects.filter(project__assigned_team=team).count()
-
-        for member in members:
-            milestone_count = Milestone.objects.filter(assigned_to=member).count()
-            percentage = (milestone_count / total_milestones) * 100 if total_milestones else 0
-            member_milestone_counts.append({
-                'username': member.username,
-                'milestone_count': milestone_count,
-                'percentage': round(percentage, 2)
-            })
-
-        # Extract data for the chart
-        usernames = [entry['username'] for entry in member_milestone_counts]
-        milestone_counts = [entry['milestone_count'] for entry in member_milestone_counts]
-        percentages = [entry['percentage'] for entry in member_milestone_counts]
-
-        # Generate Bar Chart with Task Count and Percentage
-        fig = go.Figure()
-
-        # Add bars for milestone count
-        fig.add_trace(go.Bar(
-            x=usernames,
-            y=milestone_counts,
-            name='Task Count',
-            text=milestone_counts,  # Show milestone count on the bars
-            textposition='auto',
-            hoverinfo='x+y',  # Show milestone count on hover
-            marker=dict(color='rgb(55, 83, 109)')
-        ))
-
-
-        fig.update_layout(
-            barmode='group',  # Group the bars side by side
-            title="Team Members Task Contribution",
-            xaxis_title="Team Member",
-            yaxis_title="Task Count ",
-            yaxis=dict(
-                title="Task Count",
-                range=[0, max(milestone_counts )]  # Adjust y-axis range
-            )
-        )
-
-    else:
-        fig = go.Figure()
-
-    return fig.to_html()
-
-
- 
-def project_progress_chart():
-    projects = Project.objects.all()
-    names = [project.name for project in projects]
-    progress_values = [project.calculate_progress()for project in projects]
-
-    fig = go.Figure(go.Bar(x=names, y=progress_values, text=progress_values, textposition="auto"))
-    fig.update_layout(
-        title="Project Progress Status",
-        xaxis_title="Project",
-        yaxis_title="Progress (%)",
-        yaxis=dict(range=[0, 100]),  # Limit to 0-100%
-    )
-    return fig.to_html()
-def remaining_days_chart():
-    projects = Project.objects.filter(end_date__gte=date.today())
-    names = [project.name for project in projects]
-    remaining_days = [project.days_left() for project in projects]
-
-    fig = go.Figure(go.Bar(x=names, y=remaining_days, text=remaining_days, textposition="auto"))
-    fig.update_layout(
-        title="Remaining Days for Projects",
-        xaxis_title="Project",
-        yaxis_title="Days Left",
-    )
-    return fig.to_html()
-def delayed_projects_chart():
-    delayed_projects = Project.objects.filter(end_date__lt=date.today(), status__in=["pending", "in_progress"])
-    names = [project.name for project in delayed_projects]
-    delays = [abs(project.days_left()) for project in delayed_projects]
-
-    fig = go.Figure(go.Bar(x=names, y=delays, text=delays, textposition="auto", marker_color="red"))
-    fig.update_layout(
-        title="Delayed Projects",
-        xaxis_title="Project",
-        yaxis_title="Days Delayed",
-    )
-    return fig.to_html()
-def effort_accuracy_chart():
-    milestones = Milestone.objects.filter(effort_estimation__isnull=False, actual_effort__isnull=False)
-    milestone_names = [milestone.name for milestone in milestones]
-    estimated_effort = [milestone.effort_estimation for milestone in milestones]
-    actual_effort = [milestone.actual_effort for milestone in milestones]
-
-    fig = go.Figure()
-    fig.add_trace(go.Bar(x=milestone_names, y=estimated_effort, name="Estimated Effort", marker_color="blue"))
-    fig.add_trace(go.Bar(x=milestone_names, y=actual_effort, name="Actual Effort", marker_color="orange"))
-    fig.update_layout(
-        title="Effort Accuracy",
-        xaxis_title="Tasks",
-        yaxis_title="Hours",
-        barmode="group",
-    )
-    return fig.to_html()
-def milestones_completed_chart():
-    teams = Team.objects.all()
-    team_names = []
-    completion_rates = []
-
-    for team in teams:
-        # For each team, find all the milestones from the projects assigned to that team
-        projects = Project.objects.filter(assigned_team=team)
-        total_milestones = 0
-        completed_milestones = 0
-
-        # Iterate over projects assigned to the team and count completed milestones
-        for project in projects:
-            milestones = project.milestones.all()  # Fetch milestones related to the project
-            total_milestones += milestones.count()  # Count the total number of milestones for the project
-            completed_milestones += milestones.filter(status="completed").count()  # Count completed milestones
-
-        if total_milestones > 0:
-            team_names.append(team.name)
-            completion_rates.append(round((completed_milestones / total_milestones) * 100, 2))
-
-    fig = go.Figure(go.Bar(x=team_names, y=completion_rates, text=completion_rates, textposition="auto"))
-    fig.update_layout(
-        title="Task Completion Percentage by Team",
-        xaxis_title="Team",
-        yaxis_title="Completion Rate (%)",
-        yaxis=dict(range=[0, 100]),
-    )
-    return fig.to_html()
-
-def team_milestone_allocation_chart():
-    teams = Team.objects.all()
-    team_names = [team.name for team in teams]
-    milestone_counts = []
-
-    for team in teams:
-        # For each team, find all milestones in projects assigned to that team
-        projects = Project.objects.filter(assigned_team=team)
-        total_milestones = 0
-        for project in projects:
-            milestones = project.milestones.all()  # Get milestones related to the project
-            total_milestones += milestones.count()  # Count milestones assigned to team in the project
-
-        milestone_counts.append(total_milestones)
-
-    fig = go.Figure(go.Pie(labels=team_names, values=milestone_counts, hole=0.3))
-    fig.update_layout(title="Task Allocation by Team")
-    return fig.to_html()
-
-@login_required
 def user_dashboard(request):
-    user = request.user
-
-    # Get the user's teams
-    user_teams = user.teams.all()
-
-    # Get all projects associated with the user via team assignment
-    relevant_projects = Project.objects.filter(assigned_team__in=user_teams).distinct()
-
-    # Fetch the milestones
-    assigned_milestones = Milestone.objects.filter(assigned_to=user)
-    team_milestones = Milestone.objects.filter(assigned_group__in=user_teams).distinct()
-
-    # Combine milestones
-    relevant_milestones = list(chain(assigned_milestones, team_milestones))
-
-    # Create a dictionary to group detailed milestone data by project
-    project_milestones = {}
-    today = now().date()
-    for milestone in relevant_milestones:
-        if milestone.project not in project_milestones:
-            project_milestones[milestone.project] = []
-
-        # Prepare milestone details
-        status_display = dict(Milestone.STATUS_CHOICES).get(milestone.status, milestone.status)
-        days_left = (milestone.end_date - today).days if milestone.end_date and milestone.end_date > today else None
-        delayed_days = (today - milestone.end_date).days if milestone.end_date and milestone.end_date < today else None
-
-        project_milestones[milestone.project].append({
-            "id": milestone.id,
-            "name": milestone.name,
-            "description": milestone.description or "No description provided",
-            "start_date": milestone.start_date,
-            "end_date": milestone.end_date,
-            'status': status_display,
-            "days_left": f"{days_left} days " if days_left else "No days",
-            "delayed_days": f"{delayed_days} days delayed" if delayed_days else None,
-            "assigned_to": [user.username for user in milestone.assigned_to.all()],  # List of usernames
-        })
+   # Fetch tasks assigned to the logged-in user
+    user_tasks = Task.objects.filter(assigned_to=request.user)
+    
+    # Fetch steps and issues related to the user's tasks
+    user_steps = TaskStep.objects.filter(task__in=user_tasks)
+    user_issues = TaskIssue.objects.filter(step__task__in=user_tasks)
 
     context = {
-        'user': user,
-        'projects': relevant_projects,
-        'project_milestones': project_milestones,
+        'not_started_tasks': user_tasks.filter(status='not_started'),
+        'in_progress_tasks': user_tasks.filter(status='in_progress'),
+        'completed_tasks': user_tasks.filter(status='completed'),
+        'tasks': user_tasks,
+        'user_steps': user_steps,
+        'user_issues': user_issues,
     }
     return render(request, 'users/users_dashboard.html', context)
 @role_required(['super_admin','admin','staff'])
@@ -2517,6 +2532,82 @@ def task_create(request, milestone_id):
     return render(request, "tasks/task_create.html", {"milestone": milestone, "users": users})
 
 
+def task_dashboard(request):
+    # Fetch in-progress and pending tasks for the logged-in user
+    in_progress_tasks = Task.objects.filter(assigned_to=request.user, status='in_progress')
+    pending_tasks = Task.objects.filter(assigned_to=request.user, status='not_started')
+
+    context = {
+        'in_progress_tasks': in_progress_tasks,
+        'pending_tasks': pending_tasks,
+    }
+    return render(request, 'tasks/task_detail.html', context)
+
+def get_task_details(request, task_id):
+    # Fetch task details for AJAX request
+    task = get_object_or_404(Task, id=task_id, assigned_to=request.user)
+    steps = task.steps.all()
+
+    data = {
+        'task': {
+            'id': task.id,
+            'name': task.name,
+            'description': task.description,
+            'status': task.get_status_display(),
+            'progress': task.progress,
+            'milestone': task.milestone.name,
+            'start_date': task.start_date.strftime("%b %d, %Y"),
+            'end_date': task.end_date.strftime("%b %d, %Y"),
+            'remaining_days': task.remaining_days,
+            'is_delayed': task.is_delayed,
+        },
+        'steps': [
+            {
+                'id': step.id,
+                'name': step.name,
+                'description': step.description,
+                'status': step.get_status_display(),
+                'issues_count': step.issues.count(),
+            }
+            for step in steps
+        ],
+    }
+    return JsonResponse(data)
+
+def step_issues_modal(request, step_id):
+    step = get_object_or_404(TaskStep, id=step_id, task__assigned_to=request.user)
+    return render(request, 'partials/step_issues_modal.html', {
+        'step': step,
+        'task': step.task
+    })
+@login_required
+def get_step_details(request, step_id):
+    # Fetch step details for AJAX request
+    step = get_object_or_404(TaskStep, id=step_id, task__assigned_to=request.user)
+    issues = step.issues.all()
+
+    data = {
+        'step': {
+            'id': step.id,
+            'name': step.name,
+            'description': step.description,
+            'status': step.get_status_display(),
+            'order': step.order,
+        },
+        'issues': [
+            {
+                'id': issue.id,
+                'description': issue.description,
+                'reported_by': issue.reported_by.username,
+                'reported_at': issue.reported_at.strftime("%b %d, %Y %H:%M"),
+                'resolved': issue.resolved,
+                'resolved_at': issue.resolved_at.strftime("%b %d, %Y %H:%M") if issue.resolved_at else None,
+                'remark': issue.remark,
+            }
+            for issue in issues
+        ],
+    }
+    return JsonResponse(data)
 def edit_task(request, task_id):
     task = get_object_or_404(Task, id=task_id)
     users = User.objects.all()

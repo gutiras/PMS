@@ -1,180 +1,267 @@
 {% extends 'home.html' %}
-{% block title %}Teams{% endblock %}
+{% block title %}Teams Management{% endblock %}
 {% block content %}
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <nav aria-label="breadcrumb">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a class="text-decoration-none" href="{% url 'home' %}">Home</a></li>
-            <li class="breadcrumb-item active" aria-current="page">Teams</li>
-        </ol>
-    </nav>
-</div>
-
-
-<div class="container my-1">
-    <div class="d-flex justify-content-between align-items-center mb-2">
-        <!-- Search Form -->
-        <form method="get" action="{% url 'team_list' %}" class="d-flex align-items-center w-25 mb-4">
-            <div class="input-group">
-                <input type="text" name="search" class="form-control" 
-                    placeholder="team name" value="{{ search_query }}">
-                <button type="submit" class="btn btn-primary btn-sm ms-2">
-                    <i class="bi bi-search"></i> Search
-                </button>
-            </div>
-        </form>
-        <a href="{% url 'team_create' %}" class="btn btn-outline-primary">
-            <i class="bi bi-plus-circle"></i> Create Team
+<div class="container-fluid px-4">
+    <!-- Header Section -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+           
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb bg-transparent p-0">
+                    <li class="breadcrumb-item"><a class="text-decoration-none" href="{% url 'home' %}">Home</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Teams</li>
+                </ol>
+            </nav>
+        </div>
+        <a href="{% url 'team_create' %}" class="btn btn-primary">
+            <i class="bi bi-plus-circle me-2"></i>Create Team
         </a>
     </div>
- 
 
+    <!-- Search and Filters -->
+    <div class="card shadow mb-4">
+        <div class="card-body">
+            <form method="get" action="{% url 'team_list' %}" class="row g-3 align-items-center">
+                <div class="col-md-8">
+                    <div class="input-group">
+                        <span class="input-group-text bg-transparent border-end-0">
+                            <i class="bi bi-search text-secondary"></i>
+                        </span>
+                        <input type="text" name="search" class="form-control border-start-0" 
+                               placeholder="Search teams by name..." value="{{ search_query }}">
+                    </div>
+                </div>
+                <div class="col-md-4 text-end">
+                    <button type="submit" class="btn btn-outline-secondary">
+                        <i class="bi bi-funnel me-2"></i>Apply Filters
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 
-    
+    <!-- Messages/Alerts -->
     {% if messages %}
-        <!-- Iterate over messages -->
+    <div class="mb-4">
         {% for message in messages %}
-            <!-- Check if message tag is 'danger' (error message) -->
-            {% if message.tags == 'danger' %}
-                <!-- Modal for Error Message -->
-                <div class="modal fade" id="errorModal" tabindex="-1" aria-labelledby="errorModalLabel" aria-hidden="true">
-                    <div class="modal-dialog">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title" id="errorModalLabel">Error</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                            </div>
-                            <div class="modal-body">
-                                {{ message }}
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            {% else %}
-                <!-- Normal Alerts for Non-Error Messages -->
-                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                    {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            {% endif %}
-        {% endfor %}
-    {% endif %}
-    
-    <!-- Accordion to Show Teams -->
-<div class="accordion" id="teamAccordion">
-    {% if page_obj %}
-        {% for team in page_obj.object_list %}
-        <div class="accordion-item team-item">
-            <h2 class="accordion-header" id="heading{{ team.id }}">
-                <button class="accordion-button {% if forloop.first %}collapsed{% else %}collapsed{% endif %}" 
-                        type="button" data-bs-toggle="collapse" 
-                        data-bs-target="#collapse{{ team.id }}" aria-expanded="{% if forloop.first %}true{% else %}false{% endif %}" 
-                        aria-controls="collapse{{ team.id }}">
-                    {{ forloop.counter }}. {{ team.name }} (Leader: {{ team.leader.username }})
-                </button>
-            </h2>
-            <div id="collapse{{ team.id }}" class="accordion-collapse collapse {% if forloop.first %}show{% endif %}" 
-                 aria-labelledby="heading{{ team.id }}" data-bs-parent="#teamAccordion">
-                <div class="accordion-body">
-                    <div class="row">
-                        <div class="col-md-4">
-                            <h5>Team Members</h5>
-                            {% for member in team.members.all %}
-                                <span class="badge bg-secondary me-1">{{ member.username }}</span>
-                            {% empty %}
-                                <p class="text-muted">No members assigned.</p>
-                            {% endfor %}
-                        </div>
-                        <div class="col-md-4">
-                            <h5>Assigned Projects</h5>
-                        
-                                <ul class="list-group">
-                                    {% for project in projects %}
-                                        {% if team.name == project.assigned_team.name %}
-                                        <li class="list-group-item d-flex justify-content-center align-items-center">
-                                            {{ project.name }}
-                                            
-                                        </li>
-                                        {% endif %}
-                                    {% endfor %}
-                                </ul>
-
-                        </div>
-                        <div class=" col-md-4 ">
-                            <div class="d-flex justify-content-end">
-                                <a href="{% url 'team_edit' team.id %}" class="btn btn-outline-warning btn-sm me-2">
-                                    <i class="bi bi-pencil-square"></i> Edit
-                                </a>
-                                <button class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" 
-                                        data-bs-target="#deleteTeamModal" data-team-id="{{ team.id }}" 
-                                        data-team-name="{{ team.name }}">
-                                    <i class="bi bi-trash"></i> Delete
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    
-                </div>
-            </div>
+        <div class="alert alert-dismissible fade show alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %}" 
+             role="alert">
+            <i class="bi {% if message.tags == 'success' %}bi-check-circle{% elif message.tags == 'warning' %}bi-exclamation-triangle{% else %}bi-x-circle{% endif %} me-2"></i>
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
         {% endfor %}
-    {% else %}
-    <div class="alert alert-info text-center" role="alert">
-        No teams found matching your search criteria.
     </div>
+    {% endif %}
+
+    <!-- Teams List -->
+    <div class="card shadow">
+        <div class="card-body p-0">
+            {% if page_obj %}
+            <div class="list-group list-group-flush">
+                {% for team in page_obj.object_list %}
+                <div class="list-group-item p-4">
+                    <div class="row align-items-center">
+                        <!-- Team Info -->
+                        <div class="col-md-4 mb-3 mb-md-0">
+                            <div class="d-flex align-items-center">
+                                <div class="symbol symbol-50px me-3">
+                                    <span class="symbol-label bg-primary text-white fs-4">
+                                        {{ team.name|slice:":2"|upper }}
+                                    </span>
+                                </div>
+                                <div>
+                                    <h5 class="mb-1">{{ team.name }}</h5>
+                                    <span class="text-muted small">Leader: {{ team.leader.get_full_name|default:team.leader.username }}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Members Preview -->
+                        <div class="col-md-4 mb-3 mb-md-0">
+                            <div class="d-flex flex-wrap gap-2">
+                                {% for member in team.members.all|slice:":5" %}
+                                <div class="badge bg-light text-dark border">
+                                    <i class="bi bi-person me-2"></i>{{ member.username }}
+                                </div>
+                                {% endfor %}
+                                {% if team.members.count > 5 %}
+                                <div class="badge bg-light text-dark border">
+                                    +{{ team.members.count|add:"-5" }} more
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Projects & Actions -->
+                        <div class="col-md-4">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="text-end">
+                                    <span class="badge bg-primary rounded-pill">
+                                        {{ team.projects.count }} Projects
+                                    </span>
+                                </div>
+                                <div class="dropdown">
+                                    <button class="btn btn-link text-dark" type="button" 
+                                            data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="bi bi-three-dots-vertical fs-5"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end shadow">
+                                        <li>
+                                            <a class="dropdown-item" href="{% url 'team_edit' team.id %}">
+                                                <i class="bi bi-pencil me-2"></i>Edit Team
+                                            </a>
+                                        </li>
+                                        
+                                        <li>
+                                            <button class="dropdown-item text-danger" data-bs-toggle="modal" 
+                                                    data-bs-target="#deleteTeamModal" 
+                                                    data-team-id="{{ team.id }}" 
+                                                    data-team-name="{{ team.name }}">
+                                                <i class="bi bi-trash me-2"></i>Delete Team
+                                            </button>
+                                        </li>
+                                       
+                                        <li>
+                                           <!-- Trigger Button -->
+                                            <button class="dropdown-item " data-bs-toggle="collapse" data-bs-target="#teamDetails{{ team.id }}">
+                                               <i class="bi bi-eye me-2"></i>Show Details
+                                            </button>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Collapsible Details -->
+                    <div class="collapse" id="teamDetails{{ team.id }}">
+                        <div class="mt-4 pt-3 border-top">
+                            <div class="row">
+                                <!-- Members List -->
+                                <div class="col-md-6">
+                                    <h6 class="mb-3 text-muted">Team Members</h6>
+                                    <div class="d-flex flex-wrap gap-2">
+                                        {% for member in team.members.all %}
+                                        <div class="badge bg-light text-dark border p-2">
+                                            <i class="bi bi-person me-2"></i>
+                                            {{ member.get_full_name|default:member.username }}
+                                            {% if member == team.leader %}
+                                            <span class="ms-2 badge bg-primary">Leader</span>
+                                            {% endif %}
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+
+                                <!-- Projects List -->
+                                <div class="col-md-6">
+                                    <h6 class="mb-3 text-muted">Assigned Projects</h6>
+                                    {% if team.projects.all %}
+                                    <div class="list-group">
+                                        {% for project in team.projects.all|slice:":3" %}
+                                        <a href="#" class="list-group-item list-group-item-action border-0">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <span>{{ project.name }}</span>
+                                                <span class="badge bg-{% if project.status == 'completed' %}success{% else %}warning{% endif %}">
+                                                    {{ project.get_status_display }}
+                                                </span>
+                                            </div>
+                                        </a>
+                                        {% endfor %}
+                                        {% if team.projects.count > 3 %}
+                                        <div class="text-center mt-2">
+                                            <a href="#" class="text-decoration-none small">
+                                                View all {{ team.projects.count }} projects
+                                            </a>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    {% else %}
+                                    <div class="text-muted small">No assigned projects</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <div class="mb-3">
+                    <i class="bi bi-people display-4 text-muted"></i>
+                </div>
+                <h4 class="text-muted mb-3">No teams found</h4>
+                <p class="text-muted">Start by creating your first team</p>
+                <a href="{% url 'team_create' %}" class="btn btn-primary">
+                    <i class="bi bi-plus-circle me-2"></i>Create Team
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Pagination -->
+    {% if page_obj.paginator.num_pages > 1 %}
+        <nav class="mt-4" aria-label="Page navigation">
+            <ul class="pagination justify-content-center">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}" aria-label="Previous">
+                        <i class="bi bi-chevron-left"></i>
+                    </a>
+                </li>
+                {% endif %}
+                
+                {% for num in page_obj.paginator.page_range %}
+                <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+                    <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                </li>
+                {% endfor %}
+                
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}" aria-label="Next">
+                        <i class="bi bi-chevron-right"></i>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+            <div class="text-center text-muted small mt-2">
+                Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+            </div>
+        </nav>
     {% endif %}
 </div>
 
-    <!-- Pagination -->
-    <nav aria-label="Page navigation" class="mt-4">
-        <ul class="pagination justify-content-left">
-            {% if page_obj.has_previous %}
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if project_name %}&project_name={{ project_name }}{% endif %}" aria-label="Previous">
-                        &laquo; Previous
-                    </a>
-                </li>
-            {% endif %}
-            {% for num in page_obj.paginator.page_range %}
-                <li class="page-item {% if page_obj.number == num %}active{% endif %}">
-                    <a class="page-link" href="?page={{ num }}{% if project_name %}&project_name={{ project_name }}{% endif %}">{{ num }}</a>
-                </li>
-            {% endfor %}
-            {% if page_obj.has_next %}
-                <li class="page-item">
-                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if project_name %}&project_name={{ project_name }}{% endif %}" aria-label="Next">
-                        Next &raquo;
-                    </a>
-                </li>
-            {% endif %}
-        </ul>
-    </nav>
-</div>
-
-<!-- Delete Confirmation Modal -->
+<!-- Delete Team Modal -->
 <div class="modal fade" id="deleteTeamModal" tabindex="-1" aria-labelledby="deleteTeamModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title text-danger" id="deleteTeamModalLabel">Delete Team</h5>
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-0">
+                <h5 class="modal-title text-danger" id="deleteTeamModalLabel">
+                    <i class="bi bi-exclamation-octagon me-2"></i>Confirm Deletion
+                </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body">
-                Are you sure you want to delete the team <strong id="teamName" class="text-primary"></strong>?
+            <div class="modal-body py-4">
+                <p>You are about to permanently delete:</p>
+                <h5 class="text-center mb-3" id="teamName"></h5>
+                <p class="text-muted small text-center">
+                    This action will remove all associated data and cannot be undone.
+                </p>
             </div>
-            <div class="modal-footer">
+            <div class="modal-footer border-0">
                 <form method="POST" id="deleteForm" action="{% url 'team_delete' %}">
                     {% csrf_token %}
                     <input type="hidden" id="teamId" name="team_id">
-                    <button type="submit" class="btn btn-danger">
-                        <i class="bi bi-trash-fill"></i> Delete
-                    </button>
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                        <i class="bi bi-x-circle"></i> Cancel
+                        <i class="bi bi-x-circle me-2"></i>Cancel
+                    </button>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash-fill me-2"></i>Delete Permanently
                     </button>
                 </form>
             </div>
@@ -182,20 +269,46 @@
     </div>
 </div>
 
+<style>
+    .symbol {
+        width: 50px;
+        height: 50px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+    }
+    
+    .list-group-item {
+        transition: all 0.3s ease;
+        border-left: 4px solid transparent;
+    }
+    
+    .list-group-item:hover {
+        background-color: #f8f9fa;
+        border-left-color: #0d6efd;
+       
+    }
+    
+    .badge.bg-light {
+        background-color: rgba(241, 243, 245, 0.5) !important;
+        backdrop-filter: blur(4px);
+    }
+</style>
+
 <script>
     document.addEventListener("DOMContentLoaded", function() {
-        const deleteTeamModal = document.getElementById('deleteTeamModal');
-        deleteTeamModal.addEventListener('show.bs.modal', function(event) {
-            const button = event.relatedTarget; // Button that triggered the modal
-            const teamId = button.getAttribute('data-team-id');
-            const teamName = button.getAttribute('data-team-name');
-
-            // Update the modal with team data
-            const teamNameElement = document.getElementById('teamName');
-            const teamIdElement = document.getElementById('teamId');
-            teamNameElement.textContent = teamName;
-            teamIdElement.value = teamId;
+        // Delete Modal Handler
+        const deleteModal = document.getElementById('deleteTeamModal');
+        deleteModal.addEventListener('show.bs.modal', function(event) {
+            const button = event.relatedTarget;
+            document.getElementById('teamName').textContent = button.dataset.teamName;
+            document.getElementById('teamId').value = button.dataset.teamId;
         });
+
+        // Initialize tooltips
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.map(t => new bootstrap.Tooltip(t));
     });
 </script>
 

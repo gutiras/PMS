@@ -1,0 +1,393 @@
+{% extends 'home.html' %}
+{% block content %}
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<!-- Add Bootstrap Icons -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+
+
+
+    {% block breadcrumb %}
+<!-- Enhanced Breadcrumb -->
+<nav aria-label="breadcrumb" class="dashboard-breadcrumb">
+    <ol class="breadcrumb bg-transparent px-0 py-3">
+        <li class="breadcrumb-item">
+            <a href="{% url 'home' %}" class="d-flex align-items-center text-decoration-none">
+                <i class="bi bi-house-door fs-5 text-primary me-2"></i>
+                <span class="text-primary">Home</span>
+            </a>
+        </li>
+        <li class="breadcrumb-item active text-gray-600" aria-current="page">
+            <i class="bi bi-speedometer2 me-2"></i>Analytics Dashboard
+        </li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% if user.role != 'viewer' %}
+<!-- Floating Action Button -->
+<div class="position-relative mb-4">
+    <div class="floating-report-btn">
+        <a href="{% url 'report_dashboard' %}" class="btn btn-primary btn-sm shadow-sm hover-lift">
+            <i class="bi bi-file-earmark-ppt me-2"></i>Generate Report
+        </a>
+    </div>
+</div>
+{% endif %}
+
+<!-- Visualization Selector Card -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-body">
+        <div class="row g-4 align-items-center">
+            <div class="col-md-8">
+                <div class="input-group input-group-md text-size">
+                    <span class="input-group-text bg-transparent border-end-0">
+                        <i class="bi bi-graph-up text-primary"></i>
+                    </span>
+                    <select id="graphSelector" class="form-select border-start-0 ps-0 chart-selector text-size">
+                        <option class="text-size" value="project-progress">Project Progress Analysis</option>
+                        <option class="text-size"  value="project-timeline">Project Timeline Overview</option>
+                        <option class="text-size"  value="tasks-timeline">Task Completion Timeline</option>
+                        <option class="text-size"  value="task-progress">Task Progress Metrics</option>
+                        <option class="text-size"  value="project-allocation">Team Allocation Map</option>
+                        <option class="text-size"  value="team-task-allocation">Task Distribution Matrix</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Advanced Filters Section -->
+        <div class="mt-4 filter-card collapse" id="filtersSection">
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-xl-3 col-md-6">
+                        <div class="filter-group">
+                            <label class="form-label text-muted small">Project</label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="bi bi-diagram-3"></i>
+                                </span>
+                                <select id="projectFilter" class="form-select">
+                                    <option value="">All Projects</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-xl-3 col-md-6">
+                        <div class="filter-group">
+                            <label class="form-label text-muted small">Milestone</label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="bi bi-signpost"></i>
+                                </span>
+                                <select id="milestoneFilter" class="form-select" style="display: none;">
+                                    <option value="">All Milestones</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-xl-3 col-md-6">
+                        <div class="filter-group">
+                            <label class="form-label text-muted small">Team</label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="bi bi-people"></i>
+                                </span>
+                                <select id="teamFilter" class="form-select" style="display: none;">
+                                    <option value="">All Teams</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Visualization Container -->
+<div class="card border-0 shadow-lg overflow-hidden">
+    <div class="card-body p-0">
+        <div class="graph-card position-relative">
+            <div class="loading-overlay" id="loadingOverlay">
+                <div class="spinner-container">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2 mb-0 text-primary">Crunching data...</p>
+                </div>
+            </div>
+            <h4 class="chart-header gradient-text px-4 pt-4 mb-0" id="chartTitle"></h4>
+            <div id="graphContainer" class="p-4" style="min-height: 600px;"></div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Quick Links */
+.quick-links-card .btn {
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+.quick-links-card .btn:hover {
+    background: #f8f9fa;
+    transform: translateY(-2px);
+}
+
+/* Team Availability */
+.member-card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.member-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+.availability-bar .progress {
+    height: 8px;
+    border-radius: 4px;
+}
+.avatar-title {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+}
+    .dashboard-breadcrumb .breadcrumb-item + .breadcrumb-item::before {
+        content: "›";
+        font-size: 1.2rem;
+        color: #6c757d;
+    }
+     .text-size {
+         font-size: 1rem;
+     }
+    .chart-selector {
+        border-radius: 12px;
+        border: 2px solid #e0e0e0;
+        transition: all 0.3s ease;
+         font-size: 1.2rem;
+    }
+
+    .chart-selector:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        
+    }
+
+    .filter-card {
+        border-radius: 12px;
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+
+    .loading-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(255, 255, 255, 0.9);
+        z-index: 1000;
+        display: none;
+        backdrop-filter: blur(2px);
+    }
+
+    .spinner-container {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+    }
+
+    .gradient-text {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+    }
+
+    .floating-report-btn {
+        position: absolute;
+        right: 0;
+        top: -70px;
+        z-index: 100;
+    }
+
+    .hover-lift {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .hover-lift:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1) !important;
+    }
+
+    .filter-group label {
+        font-size: 0.875rem;
+        letter-spacing: 0.5px;
+    }
+</style>
+
+    <script>
+        // State Management
+        let currentGraphType = null;
+        const taskGraphs = ['tasks-timeline', 'task-progress','team-task-allocation'];
+        const taskAllocation = ['team-task-allocation'];
+        // Initialization
+        document.addEventListener('DOMContentLoaded', async () => {
+            await populateProjects();
+            await populateTeams();
+            setupEventListeners();
+            // Load default graph
+            loadGraph('project-progress');
+        });
+
+        // Event Listeners
+        function setupEventListeners() {
+            document.getElementById('graphSelector').addEventListener('change', handleGraphChange);
+            document.getElementById('projectFilter').addEventListener('change', handleProjectChange);
+            document.getElementById('milestoneFilter').addEventListener('change', handleMilestoneChange);
+            document.getElementById('teamFilter').addEventListener('change', handleTeamChange);
+
+        }
+
+        // Handle Graph Selection
+        function handleGraphChange(e) {
+            currentGraphType = e.target.value;
+            const isTaskGraph = taskGraphs.includes(currentGraphType);
+            const isTaskAllocation = taskAllocation.includes(currentGraphType);
+
+            // Show/Hide Filters Section
+            document.getElementById('filtersSection').style.display = isTaskGraph ? 'block' : 'none';
+
+            // Reset Filters and Graph
+            document.getElementById('milestoneFilter').style.display = 'none';
+            document.getElementById('graphContainer').innerHTML = '';
+            document.getElementById('projectFilter').style.display = 'block';
+            document.getElementById('chartTitle').textContent = isTaskGraph ? 'Select a Project' : '';
+            document.getElementById('teamFilter').style.display = isTaskAllocation ? 'block' : 'none';
+            if (isTaskAllocation)
+            {
+            document.getElementById('projectFilter').style.display = 'none';
+            document.getElementById('teamFilter').style.display = 'block';
+            document.getElementById('chartTitle').textContent = isTaskAllocation ? 'Select a Team' : '';
+
+
+            }
+            
+            if (!isTaskGraph ) {
+                loadGraph(currentGraphType);
+            }
+            
+        }
+
+        // Handle Project Selection
+        async function handleProjectChange(e) {
+            const projectId = e.target.value;
+            if (projectId) {
+                await populateMilestones(projectId);
+                document.getElementById('milestoneFilter').style.display = 'block';
+                document.getElementById('chartTitle').textContent = 'Select a Milestone';
+            } else {
+                document.getElementById('milestoneFilter').style.display = 'none';
+                document.getElementById('graphContainer').innerHTML = '';
+                document.getElementById('chartTitle').textContent = 'Select a Project';
+            }
+        }
+
+        // Handle Milestone Selection
+        function handleMilestoneChange(e) {
+            const milestoneId = e.target.value;
+            if (milestoneId) {
+                loadGraph(currentGraphType);
+            } else {
+                document.getElementById('graphContainer').innerHTML = '';
+                document.getElementById('chartTitle').textContent = 'Select a Milestone';
+            }
+        }
+        // Handle Milestone Selection
+        function handleTeamChange(e) {
+            const teamId = e.target.value;
+            if (teamId) {
+                    document.getElementById('projectFilter').style.display = 'none';
+
+                loadGraph(currentGraphType);
+            } else {
+                document.getElementById('projectFilter').style.display = 'none';
+                document.getElementById('graphContainer').innerHTML = '';
+                document.getElementById('chartTitle').textContent = 'Select a Team';
+            }
+        }
+
+        // Load Graph Data
+        async function loadGraph(graphType) {
+            showLoading();
+            try {
+                const projectId = document.getElementById('projectFilter').value;
+                const milestoneId = document.getElementById('milestoneFilter').value;
+                const teamId = document.getElementById('teamFilter').value;
+
+                const params = new URLSearchParams();
+                params.append('project_id', projectId);
+                params.append('milestone_id', milestoneId);
+                params.append('team_id', teamId);
+
+
+                const response = await fetch(`/api/${graphType}/?${params.toString()}`);
+                const data = await response.json();
+
+                Plotly.purge('graphContainer');
+                Plotly.newPlot('graphContainer', data.data, data.layout);
+            } catch (error) {
+                console.error('Error loading visualization:', error);
+                showErrorState();
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // Utility Functions
+        async function populateProjects() {
+            const response = await fetch('/get-projects/');
+            const projects = await response.json();
+            const select = document.getElementById('projectFilter');
+            select.innerHTML = '<option value="">Select Project</option>' +
+                projects.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+        }
+
+        async function populateMilestones(projectId) {
+            const response = await fetch(`/get-milestones/?project_id=${projectId}`);
+            const milestones = await response.json();
+            const select = document.getElementById('milestoneFilter');
+            select.innerHTML = '<option value="">Select Milestone</option>' +
+                milestones.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+        }
+        async function populateTeams(projectId) {
+            const response = await fetch('/get-teams/');
+            const teams = await response.json();
+            const select = document.getElementById('teamFilter');
+            select.innerHTML = '<option value="">Select Team</option>' +
+                teams.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+        }
+
+        function showLoading() {
+            document.getElementById('loadingOverlay').style.display = 'flex';
+        }
+
+        function hideLoading() {
+            document.getElementById('loadingOverlay').style.display = 'none';
+        }
+
+        function showErrorState() {
+            const container = document.getElementById('graphContainer');
+            container.innerHTML = `
+                <div class="alert alert-danger m-3">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    Failed to load visualization. Please try again later.
+                </div>
+            `;
+        }
+    </script>
+
+{% endblock %}

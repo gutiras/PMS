@@ -1,0 +1,230 @@
+{% extends 'home.html' %}
+{% block content %}
+
+<style>
+    .task-list {
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+    .task-card {
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+    .task-card:hover {
+        background: #f8f9fa;
+    }
+    .task-card.active {
+        background: #e9ecef;
+    }
+    .step-card {
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+    .step-card:hover {
+        background: #f8f9fa;
+    }
+    .step-card.active {
+        background: #e9ecef;
+    }
+    .issue-card {
+        border-left: 4px solid #ffc107;
+        background: #fff3cd;
+    }
+</style>
+
+<div class="container-fluid">
+    <div class="row">
+        <!-- Left Sidebar: Task List -->
+        <div class="col-lg-4 border-end p-3">
+            <h4 class="mb-3">Tasks</h4>
+            <input type="text" id="searchTasks" class="form-control mb-3" placeholder="Search tasks...">
+            
+            <!-- In Progress Tasks -->
+            <h5 class="mt-4">In Progress</h5>
+            <div class="task-list">
+                {% for task in in_progress_tasks %}
+                <div class="task-card card mb-2 p-3" data-task-id="{{ task.id }}">
+                    <h6 class="mb-1">{{ task.name }}</h6>
+                    <small class="text-muted">{{ task.milestone.name }}</small>
+                    <div class="progress mt-2" style="height: 5px;">
+                        <div class="progress-bar" style="width: {{ task.progress }}%"></div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            <!-- Pending Tasks -->
+            <h5 class="mt-4">Pending</h5>
+            <div class="task-list">
+                {% for task in pending_tasks %}
+                <div class="task-card card mb-2 p-3" data-task-id="{{ task.id }}">
+                    <h6 class="mb-1">{{ task.name }}</h6>
+                    <small class="text-muted">{{ task.milestone.name }}</small>
+                    <div class="progress mt-2" style="height: 5px;">
+                        <div class="progress-bar" style="width: {{ task.progress }}%"></div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Right Side: Task and Step Details -->
+        <div class="col-lg-8 p-3">
+            <!-- Task Details -->
+            <div id="taskDetails" class="d-none">
+                <h4 id="taskName"></h4>
+                <p id="taskDescription" class="text-muted"></p>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <span class="badge bg-secondary" id="taskStatus"></span>
+                        <small class="text-muted" id="taskMilestone"></small>
+                    </div>
+                    <div>
+                        <small class="text-muted">Due <span id="taskEndDate"></span></small>
+                        <span class="badge bg-danger" id="taskDelay"></span>
+                    </div>
+                </div>
+                <div class="progress mb-3" style="height: 8px;">
+                    <div class="progress-bar" id="taskProgress"></div>
+                </div>
+
+                <!-- Steps -->
+                <h5>Steps</h5>
+                <div id="stepsList" class="mb-4"></div>
+            </div>
+
+            <!-- Step Details -->
+            <div id="stepDetails" class="d-none">
+                <h4 id="stepName"></h4>
+                <p id="stepDescription" class="text-muted"></p>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span class="badge bg-secondary" id="stepStatus"></span>
+                    <small class="text-muted">Order: <span id="stepOrder"></span></small>
+                </div>
+
+                <!-- Issues -->
+                <h5>Issues</h5>
+                <div id="issuesList"></div>
+                <div id="dynamicModalContainer"></div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // ... existing JavaScript code ...
+
+        // Modified step click handler
+        document.querySelectorAll('.step-card').forEach(stepCard => {
+            stepCard.addEventListener('click', function () {
+                const stepId = stepCard.getAttribute('data-step-id');
+                
+                // Fetch the modal HTML from the server
+                fetch(`/steps/${stepId}/modal/`)  // You'll need to create this endpoint
+                    .then(response => response.text())
+                    .then(html => {
+                        // Inject the modal HTML into the container
+                        const container = document.getElementById('dynamicModalContainer');
+                        container.innerHTML = html;
+                        
+                        // Initialize and show the modal
+                        const modal = new bootstrap.Modal(document.getElementById('issuesModal'));
+                        modal.show();
+                        
+                        // Add click handler for close button
+                        document.querySelector('.btn-close').addEventListener('click', () => {
+                            modal.hide();
+                        });
+                    });
+            });
+        });
+    });
+</script>
+<script>
+    // JavaScript for dynamic content loading
+    document.addEventListener('DOMContentLoaded', function () {
+        const searchInput = document.getElementById('searchTasks');
+        const taskCards = document.querySelectorAll('.task-card');
+        const taskDetails = document.getElementById('taskDetails');
+        const stepDetails = document.getElementById('stepDetails');
+
+        // Search functionality
+        searchInput.addEventListener('input', function () {
+            const query = searchInput.value.toLowerCase();
+            taskCards.forEach(card => {
+                const taskName = card.querySelector('h6').textContent.toLowerCase();
+                if (taskName.includes(query)) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        });
+
+        // Load task details
+        taskCards.forEach(card => {
+            card.addEventListener('click', function () {
+                const taskId = card.getAttribute('data-task-id');
+                fetch(`/tasks/${taskId}/details/`)
+                    .then(response => response.json())
+                    .then(data => {
+                        // Update task details
+                        document.getElementById('taskName').textContent = data.task.name;
+                        document.getElementById('taskDescription').textContent = data.task.description;
+                        document.getElementById('taskStatus').textContent = data.task.status;
+                        document.getElementById('taskMilestone').textContent = `Milestone: ${data.task.milestone}`;
+                        document.getElementById('taskEndDate').textContent = data.task.end_date;
+                        document.getElementById('taskProgress').style.width = `${data.task.progress}%`;
+                        document.getElementById('taskDelay').textContent = data.task.is_delayed ? 'Delayed' : '';
+
+                        // Update steps list
+                        const stepsList = document.getElementById('stepsList');
+                        stepsList.innerHTML = data.steps.map(step => `
+                            <div class="step-card card mb-2 p-3" data-step-id="${step.id}">
+                                <h6 class="mb-1">${step.name}</h6>
+                                <small class="text-muted">${step.description}</small>
+                                <span class="badge bg-secondary">${step.status}</span>
+                                <span class="badge bg-danger">${step.issues_count} issues</span>
+                            </div>
+                        `).join('');
+
+                        // Show task details and hide step details
+                        taskDetails.classList.remove('d-none');
+                        stepDetails.classList.add('d-none');
+
+                        // Add click event to steps
+                        document.querySelectorAll('.step-card').forEach(stepCard => {
+                            stepCard.addEventListener('click', function () {
+                                const stepId = stepCard.getAttribute('data-step-id');
+                                fetch(`/steps/${stepId}/details/`)
+                                    .then(response => response.json())
+                                    .then(data => {
+                                        // Update step details
+                                        document.getElementById('stepName').textContent = data.step.name;
+                                        document.getElementById('stepDescription').textContent = data.step.description;
+                                        document.getElementById('stepStatus').textContent = data.step.status;
+                                        document.getElementById('stepOrder').textContent = data.step.order;
+
+                                        // Update issues list
+                                        const issuesList = document.getElementById('issuesList');
+                                        issuesList.innerHTML = data.issues.map(issue => `
+                                            <div class="issue-card card mb-2 p-3">
+                                                <h6 class="mb-1">${issue.description}</h6>
+                                                <small class="text-muted">Reported by: ${issue.reported_by} on ${issue.reported_at}</small>
+                                                <span class="badge bg-${issue.resolved ? 'success' : 'danger'}">
+                                                    ${issue.resolved ? 'Resolved' : 'Unresolved'}
+                                                </span>
+                                            </div>
+                                        `).join('');
+
+                                        // Show step details
+                                        stepDetails.classList.remove('d-none');
+                                    });
+                            });
+                        });
+                    });
+            });
+        });
+    });
+</script>
+
+{% endblock %}

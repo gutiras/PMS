@@ -1,512 +1,320 @@
 {% extends 'home.html' %}
-{% block title %}Home{% endblock %}
 {% block content %}
-    <!-- Breadcrumb Navigation -->
-    <div class=" bg-light ">
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a class="text-decoration-none" href="{% url 'home' %}">Home</a></li>        
-            </ol>
-        </nav>
+<style>
+    .custom-card {
+        background: #ffffff;
+        border: none;
+        border-radius: 15px;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    
+    .custom-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+
+    .task-priority {
+        width: 8px;
+        height: 40px;
+        border-radius: 4px;
+        margin-right: 15px;
+    }
+
+    .priority-high { background: #ff4757; }
+    .priority-medium { background: #ffa502; }
+    .priority-low { background: #2ed573; }
+
+    .progress-bar-custom {
+        height: 8px;
+        border-radius: 4px;
+        background: #f1f2f6;
+    }
+
+    .progress-bar {
+        transition: width 0.5s ease;
+    }
+
+    .avatar-title {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 35px;
+        height: 35px;
+        font-size: 0.9rem;
+    }
+
+    .quick-link-btn {
+        background: #f8f9fa;
+        border: 1px solid #e9ecef;
+        border-radius: 10px;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .quick-link-btn:hover {
+        background: #ffffff;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+
+    .quick-link-btn::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        bottom: 0;
+        width: 0;
+        height: 3px;
+        background: #4b7bec;
+        transition: width 0.3s ease;
+    }
+
+    .quick-link-btn:hover::after {
+        width: 100%;
+    }
+
+    .member-card {
+        position: relative;
+        background: #f8f9fa;
+        transition: all 0.3s ease;
+    }
+
+    .member-card:hover {
+        background: #ffffff;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+    }
+
+    .availability-bar .progress {
+        height: 6px;
+        border-radius: 3px;
+    }
+</style>
+<div class="container-fluid px-4">
+    <!-- Welcome Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4 py-3 border-bottom">
+        <div>
+            <h2 class="mb-0 fw-bold">Welcome, {{ user.username }}</h2>
+            <p class="text-muted mb-0">You have {{ pending_tasks }} pending tasks</p>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-warning btn-sm pe-3" data-bs-toggle="modal" data-bs-target="#reportModal">
+                <i class="bi bi-exclamation-triangle me-2"></i> Report Issue
+            </button>
+            {% if is_team_leader %}
+            <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#teamModal">
+                <i class="bi bi-people me-2"></i> Manage Team
+            </button>
+            {% endif %}
+        </div>
     </div>
 
-    <div class="container mt-2">
-        <div class="jumbotron text-center  ">
+    <!-- Stats Cards -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-3">
+            <div class="custom-card p-3 shadow-lg">
+                <h6 class="text-muted">Pending Tasks</h6>
+                <h3 class="fw-bold">{{pending_tasks}}</h3>
+               
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="custom-card p-3 shadow-lg">
+                <h6 class="text-muted">Completed Tasks</h6>
+                <h3 class="fw-bold">{{completed_tasks}}</h3>
                 
-                <div class="d-flex justify-content-end">
-                    <button type="button" class="btn btn-outline-primary mx-2" data-bs-toggle="modal" data-bs-target="#projectsModal">
-                        View Projects
-                    </button>
-                <button type="button" class="btn btn-outline-primary mx-2" data-bs-toggle="modal" data-bs-target="#teamsModal">
-                        View Teams
-                    </button>
-                    <button type="button" class="btn btn-outline-primary mx-2" data-bs-toggle="modal" data-bs-target="#milestonesModal">
-                        View Tasks
-                    </button>
-                </div>
-        </div>
-        <!-- Projects and Tasks  tab section -->
-        <div class="row">
-            <!-- Sidebar with tabs -->
-            <div class="col-md-2">
-                <div class="nav flex-column nav-pills" id="sideTabs" role="tablist" aria-orientation="vertical">
-                    <a class="nav-link active" id="projects-tab" data-bs-toggle="pill" href="#projects" role="tab" aria-controls="projects" aria-selected="true">
-                        Projects
-                    </a>
-                    <a class="nav-link" id="milestones-tab" data-bs-toggle="pill" href="#milestones" role="tab" aria-controls="milestones" aria-selected="false">
-                        Tasks
-                    </a>
-                </div>
-            </div>
-            <!-- Tab content area -->
-            <div class="col-md-10">
-                <div class="tab-content" id="sideTabsContent">
-                    <!-- Projects Section -->
-                    <div class="tab-pane fade show active" id="projects" role="tabpanel" aria-labelledby="projects-tab">         
-                        <!-- Tab navigation for project categories -->
-                        <ul class="nav nav-pills mb-4" id="projectTabs" role="tablist">
-                            <li class="nav-item" role="presentation">
-                                <a class="nav-link active" id="pending-projects-tab" data-bs-toggle="pill" href="#pending-projects" role="tab" aria-controls="pending-projects" aria-selected="true">
-                                    Pending
-                                </a>
-                            </li>
-                            <li class="nav-item" role="presentation">
-                                <a class="nav-link" id="ongoing-projects-tab" data-bs-toggle="pill" href="#ongoing-projects" role="tab" aria-controls="ongoing-projects" aria-selected="false">
-                                    Ongoing
-                                </a>
-                            </li>
-                            <li class="nav-item" role="presentation">
-                                <a class="nav-link" id="completed-projects-tab" data-bs-toggle="pill" href="#completed-projects" role="tab" aria-controls="completed-projects" aria-selected="false">
-                                    Completed
-                                </a>
-                            </li>
-                        </ul>
-
-                        <!-- Tab content area for project categories -->
-                        <div class="tab-content" id="projectTabsContent">
-                            <!-- Pending Projects Tab -->
-                            <div class="tab-pane fade show active" id="pending-projects" role="tabpanel" aria-labelledby="pending-projects-tab">
-                                <div class="row mb-4">
-                                    <div class="col-md-12">
-                                        <div class="card shadow-sm">
-                                            <div class="card-body">
-                                                
-                                                <ul id="pendingProjectList" class="list-group">
-                                                    {% for project in pending_projects %}
-                                                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                                                            <div>
-                                                                <strong>{{ project.name }}</strong><br>
-                                                            </div>
-                                                        </li>
-                                                    {% empty %}
-                                                        <li class="list-group-item text-center">No pending projects.</li>
-                                                    {% endfor %}
-                                                </ul>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Ongoing Projects Tab -->
-                            <div class="tab-pane fade" id="ongoing-projects" role="tabpanel" aria-labelledby="ongoing-projects-tab">
-                                <div class="row mb-4">
-                                    <div class="col-md-12">
-                                        <div class="card shadow-sm">
-                                            <div class="card-body">
-                                                
-                                                <ul id="ongoingProjectList" class="list-group">
-                                                    {% for project in ongoing_projects %}
-                                                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                                                            <div>
-                                                                <strong>{{ project.name }}</strong><br>
-                                                            </div>
-                                                        </li>
-                                                    {% empty %}
-                                                        <li class="list-group-item text-center">No ongoing projects.</li>
-                                                    {% endfor %}
-                                                </ul>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Completed Projects Tab -->
-                            <div class="tab-pane fade" id="completed-projects" role="tabpanel" aria-labelledby="completed-projects-tab">
-                                <div class="row mb-4">
-                                    <div class="col-md-12">
-                                        <div class="card shadow-sm">
-                                            <div class="card-body">
-                                                
-                                                <ul id="completedProjectList" class="list-group">
-                                                    {% for project in completed_projects %}
-                                                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                                                            <div>
-                                                                <strong>{{ project.name }}</strong><br>
-                                                            </div>
-                                                        </li>
-                                                    {% empty %}
-                                                        <li class="list-group-item text-center">No completed projects.</li>
-                                                    {% endfor %}
-                                                </ul>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>                
-                    </div>
-
-                    <!-- Tasks Section -->
-                    <div class="tab-pane fade" id="milestones" role="tabpanel" aria-labelledby="milestones-tab">
-                        <!-- Tab navigation for milestones categories -->
-                        <ul class="nav nav-pills mb-4" id="taskTabs" role="tablist">
-                            <li class="nav-item" role="presentation">
-                                <a class="nav-link active" id="pending-milestones-tab" data-bs-toggle="pill" href="#pending-milestones" role="tab" aria-controls="pending-milestones" aria-selected="true">
-                                    Pending
-                                </a>
-                            </li>
-                            <li class="nav-item" role="presentation">
-                                <a class="nav-link" id="ongoing-milestones-tab" data-bs-toggle="pill" href="#ongoing-milestones" role="tab" aria-controls="ongoing-milestones" aria-selected="false">
-                                    Ongoing
-                                </a>
-                            </li>
-                            <li class="nav-item" role="presentation">
-                                <a class="nav-link" id="completed-milestones-tab" data-bs-toggle="pill" href="#completed-milestones" role="tab" aria-controls="completed-milestones" aria-selected="false">
-                                    Completed
-                                </a>
-                            </li>
-                        </ul>
-                        <!-- Tab content area for project categories -->
-                        <div class="tab-content" id="projectTabsContent">
-                            <!-- Pending milestones Tab -->
-                            <div class="tab-pane fade show active" id="pending-milestones" role="tabpanel" aria-labelledby="pending-milestones-tab">
-                                <div class="row mb-4">
-                                    <div class="col-md-12">
-                                        <div class="card shadow-sm">
-                                            <div class="card-body">
-                                               
-                                                <ul id="pendingTaskList" class="list-group">
-                                                    {% for task in pending_milestones %}
-                                                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                                                            <div>
-                                                                <strong>{{ task.name }}</strong><br>
-                                                            </div>
-                                                           
-                                                        </li>
-                                                    {% empty %}
-                                                        <li class="list-group-item text-center">No pending projects.</li>
-                                                    {% endfor %}
-                                                </ul>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Ongoing milestones Tab -->
-                            <div class="tab-pane fade" id="ongoing-milestones" role="tabpanel" aria-labelledby="ongoing-milestones-tab">
-                                <div class="row mb-4">
-                                    <div class="col-md-12">
-                                        <div class="card shadow-sm">
-                                            <div class="card-body">
-                                                
-                                                <ul id="ongoingTaskList" class="list-group">
-                                                    {% for task in ongoing_milestones %}
-                                                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                                                             <div>
-                                                                <strong>{{ task.name }}</strong><br>
-                                                            </div>
-                                                            <div class="col-md-4 mt-2">
-                                                                <div class="d-flex justify-content-end align-items-end">
-                                                                    <a href="{% url 'task_updates' 3 task.id %}" class="btn btn-outline-secondary btn-sm">
-                                                                        <i class="bi bi-clock-history"></i> Daily Update
-                                                                    </a>
-                                                                </div>
-                                                            </div>
-                                                        </li>
-                                                    {% empty %}
-                                                        <li class="list-group-item text-center">No ongoing milestones.</li>
-                                                    {% endfor %}
-                                                </ul>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Completed Projects Tab -->
-                            <div class="tab-pane fade" id="completed-milestones" role="tabpanel" aria-labelledby="completed-milestones-tab">
-                                <div class="row mb-4">
-                                    <div class="col-md-12">
-                                        <div class="card shadow-sm">
-                                            <div class="card-body">
-                                                
-                                                <ul id="completedTaskList" class="list-group">
-                                                    {% for task in completed_milestones %}
-                                                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                                                            <div>
-                                                                <strong>{{ task.name }}</strong><br>
-                                                            </div>
-                                                            
-                                                        </li>
-                                                    {% empty %}
-                                                        <li class="list-group-item text-center">No completed Tasks.</li>
-                                                    {% endfor %}
-                                                </ul>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>   
-                    </div>
-                </div>
-
-                <!--  Recent Tasks -->
-                <div class="col-md-12">
-                    <div class="card shadow-sm">
-                        <div class="card-body">
-                            <h3>Recents</h3>
-                            <div class="accordion" id="milestonesAccordion">
-                                {% for task in recent_milestones %}
-                                    <div class="accordion-item">
-                                        <h2 class="accordion-header" id="heading{{ forloop.counter }}">
-                                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-                                                    data-bs-target="#collapse{{ forloop.counter }}" aria-expanded="false"
-                                                    aria-controls="collapse{{ forloop.counter }}">
-                                                {{ task.name }}
-                                            </button>
-                                        </h2>
-                                        <div id="collapse{{ forloop.counter }}" class="accordion-collapse collapse"
-                                                aria-labelledby="heading{{ forloop.counter }}" data-bs-parent="#milestonesAccordion">
-                                            <div class="accordion-body">
-                                                From Project: <em>{{ task.project.name }}</em><br>
-                                                {% if task.updates.exists %}
-                                                    {{ task.updates.first.created_at|date:"M d, Y" }}<br>
-                                                    <strong>Progress Detail:</strong> {{ task.updates.first.progress_detail }}<br>
-                                                    {% if task.updates.first.issues %}
-                                                        <strong>Issues:</strong> {{ task.updates.first.issues }}
-                                                    {% endif %}
-                                                {% else %}
-                                                    <p>No updates available for this task.</p>
-                                                {% endif %}
-                                                
-                                                <br>
-                                                
-                                            </div>
-                                        </div>
-                                    </div>
-                                {% empty %}
-                                    <div class="text-center">No recent milestones found.</div>
-                                {% endfor %}
-                            </div>
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>
-
-        <!-- Projects Modal -->
-        <div class="modal fade" id="projectsModal" tabindex="-1" aria-labelledby="projectsModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-lg">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="projectsModalLabel">All Projects You Have Participated In</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <!-- Search Input -->
-                        <input id="projectSearch" type="text" class="form-control mb-3" placeholder="Search projects..." onkeyup="filterProjects()">
-                        
-                        <!-- Accordion for Projects -->
-                        <div class="accordion" id="projectsAccordion">
-                            {% for project in projects %}
-                                <div class="accordion-item">
-                                    <h2 class="accordion-header" id="heading{{ forloop.counter }}">
-                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" 
-                                                data-bs-target="#collapse{{ forloop.counter }}" aria-expanded="false" 
-                                                aria-controls="collapse{{ forloop.counter }}">
-                                            {{ project.name }}
-                                        </button>
-                                    </h2>
-                                    <div id="collapse{{ forloop.counter }}" class="accordion-collapse collapse" 
-                                        aria-labelledby="heading{{ forloop.counter }}" data-bs-parent="#projectsAccordion">
-                                        <div class="accordion-body">
-                                            <strong>Status:</strong> 
-                                            <span class="badge bg-info">{{ project.get_status_display }}</span><br>
-                                            <strong>Progress:</strong> {{ project.calculate_progress }}%<br>
-                                            <strong>Start Date:</strong> {{ project.start_date|date:"M d, Y" }}<br>
-                                            <strong>End Date:</strong> 
-                                            {% if project.end_date %}
-                                                {{ project.end_date|date:"M d, Y" }}
-                                            {% else %}
-                                                <span class="text-muted">Ongoing</span>
-                                            {% endif %}<br>
-                                            <strong>Team:</strong> {{ project.assigned_team }}<br>
-                                            <strong>Description:</strong> 
-                                            <span>{{ project.description|default:"No description provided." }}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            {% empty %}
-                                <div class="text-center">You have not participated in any projects yet.</div>
-                            {% endfor %}
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    </div>
-                </div>
+        <div class="col-md-3">
+            <div class="custom-card p-3 shadow-lg">
+                <h6 class="text-muted">Teams</h6>
+                <h3 class="fw-bold">{{user_teams}}</h3>
+                
             </div>
         </div>
-
-        <!-- Tasks Modal -->
-        <div class="modal fade" id="milestonesModal" tabindex="-1" aria-labelledby="milestonesModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-lg">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="milestonesModalLabel">Recent Tasks</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <!-- Search Input -->
-                        <input id="taskSearch" type="text" class="form-control mb-3" placeholder="Search milestones..." onkeyup="filterTasks()">
-
-                        <!-- Accordion for Tasks -->
-                        <div class="accordion" id="milestonesAccordion">
-                            {% for task in milestones %}
-                                <div class="accordion-item">
-                                    <h2 class="accordion-header" id="taskHeading{{ forloop.counter }}">
-                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" 
-                                                data-bs-target="#taskCollapse{{ forloop.counter }}" aria-expanded="false" 
-                                                aria-controls="taskCollapse{{ forloop.counter }}">
-                                            {{ task.name }}
-                                        </button>
-                                    </h2>
-                                    <div id="taskCollapse{{ forloop.counter }}" class="accordion-collapse collapse" 
-                                        aria-labelledby="taskHeading{{ forloop.counter }}" data-bs-parent="#milestonesAccordion">
-                                        <div class="accordion-body">
-                                            <strong>From Project:</strong> <em>{{ task.project.name }}</em><br>
-                                            <strong>Last Updated:</strong> {{ task.updates.first.created_at|date:"M d, Y" }}<br>
-                                            <strong>Status:</strong> 
-                                            <span class="badge {% if task.status == 'completed' %}bg-success{% elif task.status == 'in_progress' %}bg-warning{% else %}bg-secondary{% endif %}">
-                                                {{ task.get_status_display }}
-                                            </span><br>
-                                            <strong>Task Description:</strong>
-                                            <p>{{ task.description|default:"No description available." }}</p>
-                                            <strong>Deadline:</strong> {{ task.enddate|date:"M d, Y" }}<br>
-                                        </div>
-                                    </div>
-                                </div>
-                            {% empty %}
-                                <div class="text-center">No recent milestones found.</div>
-                            {% endfor %}
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    </div>
-                </div>
+        <div class="col-md-3">
+            <div class="custom-card p-3 shadow-lg">
+                <h6 class="text-muted">Projects</h6>
+                <h3 class="fw-bold">{{user_projects}}</h3>
+                
             </div>
         </div>
-
-        <!-- Teams Modal -->
-        <div class="modal fade" id="teamsModal" tabindex="-1" aria-labelledby="teamsModalLabel" aria-hidden="true">
-            <div class="modal-dialog modal-lg">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="teamsModalLabel">All Teams You Are In</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <!-- Search Input -->
-                        <input id="teamSearch" type="text" class="form-control mb-3" placeholder="Search teams..." onkeyup="filterTeams()">
-
-                        <!-- Accordion for Teams -->
-                        <div class="accordion" id="teamsAccordion">
-                            {% for team in teams %}
-                                <div class="accordion-item">
-                                    <h2 class="accordion-header" id="teamHeading{{ forloop.counter }}">
-                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" 
-                                                data-bs-target="#teamCollapse{{ forloop.counter }}" aria-expanded="false" 
-                                                aria-controls="teamCollapse{{ forloop.counter }}">
-                                            {{ team.name }}
-                                        </button>
-                                    </h2>
-                                    <div id="teamCollapse{{ forloop.counter }}" class="accordion-collapse collapse" 
-                                        aria-labelledby="teamHeading{{ forloop.counter }}" data-bs-parent="#teamsAccordion">
-                                        <div class="accordion-body">
-                                            <strong>Team Lead:</strong> {{ team.leader }}<br>
-                                            <strong>Members:</strong> 
-                                            <ul>
-                                                {% for member in team.members.all %}
-                                                    <li>{{ member.username }}</li>
-                                                {% endfor %}
-                                            </ul>
-                                            <strong>Created On:</strong> {{ team.created_at|date:"M d, Y" }}<br>
-                                            <strong>Description:</strong>
-                                            <p>{{ team.description|default:"No description available." }}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            {% empty %}
-                                <div class="text-center">You are not part of any teams yet.</div>
-                            {% endfor %}
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    </div>
-                </div>
-            </div>
-        </div>  
-
     </div>
 
-    <script>
+    <!-- Main Content Grid -->
+    <div class="row g-4">
+        <!-- Left Column -->
+        <div class="col-lg-8">
+            <!-- Task Overview -->
+            {% comment %} <div class="custom-card mb-4 shadow-lg p-3">
+                <div class="card-header bg-white border-0 py-3">
+                    <h5 class="mb-0 fw-bold">Your Tasks Overview</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        {% for task in recent_tasks %}
+                        <a href="#" class="list-group-item list-group-item-action d-flex align-items-center task-item">
+                            <div class="task-priority {{ task.priority }}"></div>
+                            <div class="flex-grow-1">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h6 class="mb-1 fw-semibold">{{ task.name }}</h6>
+                                    <span class="badge bg-light text-dark border">{{ task.end_date|date:"M d" }}</span>
+                                </div>
+                                <div class="d-flex align-items-center">
+                                    <small class="text-muted me-2">{{ task.milestone.name }}</small>
+                                    <div>{{ task.milestone.progress }}%</div>
+                                </div>
+                            </div>
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div> {% endcomment %}
 
+            <!-- Project Progress -->
+            <div class="custom-card shadow-lg p-3">
+                <div class="card-header bg-white border-0 py-3">
+                    <h5 class="mb-0 fw-bold">Active Projects</h5>
+                </div>
+                <div class="card-body">
+                    {% for project in active_projects %}
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div>
+                                <h6 class="mb-0 fw-semibold">{{ project.name }}</h6>
+                                <small class="text-muted">
+                                    {{ project.completed_milestones }}/{{ project.total_milestones }} Milestones
+                                </small>
+                            </div>
+                            <div class="text-end">
+                                <small class="text-muted">Due {{ project.end_date|date:"M d" }}</small>
+                                <div class="progress progress-bar-custom mt-1" style="width: 150px;">
+                                    <div class="progress-bar bg-success" style="width: {{ project.progress }}%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
 
-        function filterTeams() {
-            const searchInput = document.getElementById('teamSearch').value.toLowerCase();
-            const teamItems = document.querySelectorAll('#teamsAccordion .accordion-item');
+            <!-- Quick Links -->
+            <div class="custom-card mt-4 shadow-lg p-3">
+                <div class="card-header bg-white border-0 py-3">
+                    <h5 class="mb-0 fw-bold">Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-2">
+                        <div class="col-md-4">
+                            <a href="#" class="btn btn-light w-100 text-start">
+                                <i class="bi bi-list-task me-2"></i> My Tasks
+                            </a>
+                        </div>
+                        <div class="col-md-4">
+                            <a href="#" class="btn btn-light w-100 text-start">
+                                <i class="bi bi-file-earmark-text me-2"></i> Generate Report
+                            </a>
+                        </div>
+                        <div class="col-md-4">
+                            <a href="#" class="btn btn-light w-100 text-start">
+                                <i class="bi bi-people me-2"></i> My Teams
+                            </a>
+                        </div>
+                        {% if is_team_leader %}
+                        <div class="col-md-4">
+                            <a href="#" class="btn btn-light w-100 text-start">
+                                <i class="bi bi-plus-circle me-2"></i> Create Milestone
+                            </a>
+                        </div>
+                        <div class="col-md-4">
+                            <a href="#" class="btn btn-light w-100 text-start">
+                                <i class="bi bi-calendar me-2"></i> Team Calendar
+                            </a>
+                        </div>
+                        <div class="col-md-4">
+                            <a href="#" class="btn btn-light w-100 text-start">
+                                <i class="bi bi-plus-circle me-2"></i> Create Task
+                            </a>
+                        </div>
+                        <div class="col-md-4">
+                            <a href="#" class="btn btn-light w-100 text-start">
+                                <i class="bi bi-person-plus me-2"></i> Assign Tasks
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
 
-            teamItems.forEach(item => {
-                const teamName = item.querySelector('.accordion-button').textContent.toLowerCase();
-                if (teamName.includes(searchInput)) {
-                    item.style.display = '';
-                } else {
-                    item.style.display = 'none';
-                }
-            });
-        }
+        <!-- Right Column -->
+        <div class="col-lg-4">
+            <!-- Recent Activity Timeline -->
+            <div class="custom-card mb-4 shadow-lg p-3">
+                <div class="card-header bg-white border-0 ">
+                    <h5 class="mb-0 fw-bold">Recent Activity</h5>
+                </div>
+                <div class="card-body">
+                    <div class="activity-timeline">
+                        {% for activity in recent_activities %}
+                        <div class="activity-item position-relative ps-4 pb-3">
+                            <div class="activity-indicator"></div>
+                            <div class="ps-4">
+                                <div class="d-flex align-items-center mb-2">
+                                    <div class="avatar-sm me-3">
+                                        <span class="avatar-title bg-primary rounded-circle">
+                                            {{ activity.user.username|first }}
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-0 fw-semibold">{{ activity.activity_type }}</h6>
+                                        <small class="text-muted">{{ activity.timestamp|timesince }} ago</small>
+                                    </div>
+                                </div>
+                                <p class="text-muted mb-0 small">{{ activity.description }}</p>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
 
-            // Filter Projects
-        function filterProjects() {
-            const searchInput = document.getElementById('projectSearch').value.toLowerCase();
-            const projectItems = document.querySelectorAll('#projectsAccordion .accordion-item');
+            <!-- Team Availability Widget -->
+            {% if is_team_leader %}
+            <div class="custom-card shadow-lg border-2 p-3">
+                <div class="card-header bg-white border-1">
+                    <h5 class="mb-0 fw-bold">Team Capacity</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        {% for member in team_members %}
+                        <div class="col-12">
+                            <div class="member-card p-3">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <div>
+                                        <h6 class="mb-0 fw-semibold">{{ member.username }} <small class="text-muted">({{ member.team_names|join:", " }})</small></h6>
+                                        <small class="text-muted">{{ member.role }}</small>
+                                    </div>
+                                    <span class="badge {% if member.task_count <= 2 %}bg-success{% elif member.task_count <= 5 %}bg-warning{% else %}bg-danger{% endif %}">
+                                        {{ member.task_count }} Tasks
+                                    </span>
+                                </div>
+                                <div class="availability-bar mt-2">
+                                    <small class="text-muted">
+                                        {% if member.task_count <= 2 %}Highly Available
+                                        {% elif member.task_count <= 5 %}Moderately Busy
+                                        {% else %}Overloaded
+                                        {% endif %}
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
 
-            projectItems.forEach(item => {
-                const projectName = item.querySelector('.accordion-button').textContent.toLowerCase();
-                if (projectName.includes(searchInput)) {
-                    item.style.display = '';
-                } else {
-                    item.style.display = 'none';
-                }
-            });
-        }
-        function filterTasks() {
-            const searchInput = document.getElementById('taskSearch').value.toLowerCase();
-            const taskItems = document.querySelectorAll('#milestonesAccordion .accordion-item');
-
-            taskItems.forEach(item => {
-                const taskName = item.querySelector('.accordion-button').textContent.toLowerCase();
-                if (taskName.includes(searchInput)) {
-                    item.style.display = '';
-                } else {
-                    item.style.display = 'none';
-                }
-            });
-        }
-            // Hover effect for cards
-            document.querySelectorAll('.card-hover').forEach(card => {
-                card.addEventListener('mouseenter', () => card.classList.add('shadow-lg'));
-                card.addEventListener('mouseleave', () => card.classList.remove('shadow-lg'));
-            });
-    </script>
-
-    <style>
-        .card-hover {
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-
-        .card-hover:hover {
-            transform: translateY(-5px);
-        }
-
-        .progress-bar {
-            transition: width 0.6s ease;
-        }
-    </style>
 {% endblock %}

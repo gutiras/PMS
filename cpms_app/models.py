@@ -265,7 +265,7 @@ class Milestone(models.Model):
             # Set status based on milestone completion
             if completed_tasks.count() == total_tasks and total_tasks != 0:
                 self.status = 'completed'
-            elif in_progress_steps.count() > 0:
+            elif in_progress_steps.count() > 0 or 0 or completed_tasks.count() > 0:
                 self.status = 'in_progress'
             else:
                 self.status = 'pending'
@@ -360,11 +360,10 @@ class Task(models.Model):
         completed_steps = self.steps.filter(status='completed')
         in_progress_steps = self.steps.filter(status='in_progress')
         total_steps = self.steps.count()
-        
         # Set status based on milestone completion
         if completed_steps.count() == total_steps and total_steps != 0:
             self.status = 'completed'
-        elif in_progress_steps.count() > 0:
+        elif in_progress_steps.count() > 0 or completed_steps.count() > 0:
             self.status = 'in_progress'
         else:
             self.status = 'not_started'

@@ -1,20 +1,37 @@
 from django.urls import path
 from . import views
 from django.contrib.auth import views as auth_views
+
 urlpatterns = [
    
 
+    
+    # API Endpoints
+    path('api/project-progress/', views.project_progress, name='project-progress'),
+    path('api/project-timeline/', views.project_timelinee, name='project-timeline'),
+    path('api/tasks-timeline/', views.tasks_timeline, name='tasks-timeline'),
+    path('api/task-progress/', views.task_progress, name='task-progress'),
+    path('api/project-allocation/', views.project_allocation, name='project-allocation'),
+    path('api/team-task-allocation/', views.team_task_allocation, name='team-task-allocation'),
+    
+    # Filter Endpoints
+    path('get-projects/', views.get_projects, name='get-projects'),
+    path('get-milestones/', views.get_milestones, name='get-milestones'),
+    path('get-teams/', views.get_teams, name='get-teams'),
+    
     path("reports/", views.report_dashboard, name="report_dashboard"),
     path("generate_filtered_excel/", views.generate_filtered_excel, name="generate_filtered_excel"),
     path("dashboard/", views.dashboard, name="dashboard"),
     path("user_dashboard/", views.user_dashboard, name="user_dashboard"),
     path('activities/', views.admin_activity_view, name='admin_activities'),
     path('activity-logs/', views.activity_logs, name='activity_logs'),
-
+    path("get-milestones/", views.get_milestones, name="get_milestones"),
+    path("get-tasks/", views.get_tasks, name="get_tasks"),
 
 
     
-    path("", views.landing_page, name="home"),
+    path("", views.custom_login, name="login"),
+    path("/home", views.landing_page, name="home"),
     path("admin_landing_page/", views.admin_landing_page, name="admin_landing_page"),
     path("other_landing_page/", views.other_landing_page, name="other_landing_page"),
     path('gantt/<int:project_id>/', views.gantt_chart, name='gantt_chart'),
@@ -37,7 +54,11 @@ urlpatterns = [
 
     path("milestones/<int:milestone_id>/tasks/", views.task_list, name="task_list"),
     path('task/edit/<int:task_id>/', views.edit_task, name='edit_task'),
-    
+    path('taskdashboard/', views.task_dashboard, name='task_dashboard'),
+    path('tasks/<int:task_id>/details/', views.get_task_details, name='get_task_details'),
+    path('steps/<int:step_id>/details/', views.get_step_details, name='get_step_details'),
+    path('steps/<int:step_id>/modal/', views.step_issues_modal, name='step_issues_modal'),
+
 
     path('api/milestones/<int:project_id>/', views.MilestonesByProject.as_view(), name='milestones_by_project'),
     path('api/tasks/<int:milestone_id>/', views.TasksByMilestone.as_view(), name='tasks_by_milestone'),

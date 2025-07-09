@@ -1,122 +1,259 @@
 {% extends 'home.html' %}
+{% block title %}Activity Logs{% endblock %}
 {% block content %}
-    <!-- Breadcrumb Navigation -->
-    <div class=" bg-light">
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a class="text-decoration-none" href="{% url 'home' %}">Home</a></li>
-                <li class="breadcrumb-item active">Activities</li>
-            </ol>
-        </nav>
-    </div>
-<div class="container my-2">
+
+<!-- Custom CSS -->
+<style>
+    .gradient-color{
+         background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+    }
+    .filter-card {
+        background: #ffffff;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    .filter-card .form-control,
+    .filter-card .form-select {
+        border-radius: 8px;
+        border: 1px solid #e0e0e0;
+        transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+    .filter-card .form-control:focus,
+    .filter-card .form-select:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    .activity-table {
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    }
+    .activity-table th {
+       
+        font-weight: 500;
+        padding: 1rem;
+    }
+    .activity-table td {
+        vertical-align: middle;
+        padding: 0.75rem;
+    }
+    .activity-badge {
+        padding: 0.375rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.875rem;
+    }
+    .activity-badge.create { background: #e3f2fd; color: #1976d2; }
+    .activity-badge.update { background: #fff3e0; color: #f57c00; }
+    .activity-badge.delete { background: #ffebee; color: #d32f2f; }
+    .activity-badge.other { background: #f5f5f5; color: #616161; }
+    .user-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: #667eea;
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.875rem;
+        margin-right: 0.5rem;
+    }
+</style>
+
+<!-- Breadcrumb Navigation -->
+<div class="container-fluid bg-light">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item"><a class="text-decoration-none text-secondary" href="{% url 'home' %}"><i class="bi bi-house-door"></i> Home</a></li>
+            <li class="breadcrumb-item active text-primary">Activity Logs</li>
+        </ol>
+    </nav>
+</div>
+
+<!-- Main Content -->
+<div class="container-fluid px-4 my-2">
     <!-- Filter Section -->
-    <form method="GET" class="row g-3 align-items-center mb-4">
-        <!-- Search Bar -->
-        <div class="col-md-3">
-            <input 
-                type="text" 
-                class="form-control" 
-                name="search" 
-                placeholder="Search activities..." 
-                value="{{ search_query }}">
-        </div>
+    <div class="filter-card">
+        <form method="GET" class="row g-3 align-items-center">
+            <!-- Search Bar -->
+            <div class="col-md-12">
+                <div class="input-group w-25">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input type="text" class="form-control" name="search" placeholder="Search activities..." value="{{ search_query }}">
+                </div>
+            </div>
 
-        <!-- User Filter -->
-        <div class="col-md-2">
-            <select name="user" class="form-select">
-                <option value="">All Users</option>
-                {% for user in users %}
-                <option value="{{ user.id }}" {% if user.id|stringformat:"s" == user_filter %}selected{% endif %}>
-                    {{ user.username }}
-                </option>
-                {% endfor %}
-            </select>
-        </div>
+            <!-- User Filter -->
+            <div class="col-md-2">
+                <select name="user" class="form-select">
+                    <option value="">All Users</option>
+                    {% for user in users %}
+                    <option value="{{ user.id }}" {% if user.id|stringformat:"s" == user_filter %}selected{% endif %}>
+                        {{ user.username }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
 
-        <!-- Project Filter -->
-        <div class="col-md-2">
-            <select name="project" class="form-select">
-                <option value="">All Projects</option>
-                {% for project in projects %}
-                <option value="{{ project.id }}" {% if project.id|stringformat:"s" == project_filter %}selected{% endif %}>
-                    {{ project.name }}
-                </option>
-                {% endfor %}
-            </select>
-        </div>
+            <!-- Project Filter -->
+            <div class="col-md-2">
+                <select name="project" id="projectSelect" class="form-select">
+                    <option value="">All Projects</option>
+                    {% for project in projects %}
+                    <option value="{{ project.id }}" {% if project.id|stringformat:"s" == project_filter %}selected{% endif %}>
+                        {{ project.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
 
-        <!-- Task Filter -->
-        <div class="col-md-2">
-            <select name="task" class="form-select">
-                <option value="">All Tasks</option>
-                {% for task in milestones %}
-                <option value="{{ task.id }}" {% if task.id|stringformat:"s" == task_filter %}selected{% endif %}>
-                    {{ task.name }}
-                </option>
-                {% endfor %}
-            </select>
-        </div>
+            <!-- Milestone Filter -->
+            <div class="col-md-2">
+                <select name="milestone" id="milestoneSelect" class="form-select">
+                    <option value="">All Milestones</option>
+                    {% for milestone in milestones %}
+                    <option value="{{ milestone.id }}" {% if milestone.id|stringformat:"s" == milestone_filter %}selected{% endif %}>
+                        {{ milestone.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
 
-        <!-- Activity Type Filter -->
-        <div class="col-md-2">
-            <select name="activity_type" class="form-select">
-                <option value="">All Activity Types</option>
-                {% for choice, display in activity_choices.items %}
-                <option value="{{ choice }}" {% if choice == activity_type_filter %}selected{% endif %}>
-                    {{ display }}
-                </option>
-                {% endfor %}
-            </select>
-        </div>
+            <!-- Task Filter -->
+            <div class="col-md-2">
+                <select name="task" id="taskSelect" class="form-select">
+                    <option value="">All Tasks</option>
+                    {% for task in tasks %}
+                    <option value="{{ task.id }}" {% if task.id|stringformat:"s" == task_filter %}selected{% endif %}>
+                        {{ task.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
 
-        <!-- Submit Button -->
-        <div class="col-md-1">
-            <button type="submit" class="btn btn-primary w-100">Search</button>
-        </div>
-    </form>
+            <!-- Activity Type Filter -->
+            <div class="col-md-2">
+                <select name="activity_type" class="form-select">
+                    <option value="">All Activity Types</option>
+                    {% for choice, display in activity_choices.items %}
+                    <option value="{{ choice }}" {% if choice == activity_type_filter %}selected{% endif %}>
+                        {{ display }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="col-md-1">
+                <button type="submit" class="btn btn-primary w-100"><i class="bi bi-filter"></i> Filter</button>
+            </div>
+        </form>
+    </div>
 
     <!-- Activities Table -->
-    <div class="table-responsive">
-        <table id="activityTable" class="table table-striped">
-            <thead class="table-light">
-                <tr>
-                    <th>User</th>
-                    <th>Object Name</th>
-                    <th>Activity Type</th>
-                    <th>Description</th>
-                    <th>Timestamp</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for activity in activities %}
-                <tr>
-                    <td>{{ activity.user.username }}</td>
-                    <td>{{ activity.object_name }}</td>
-                    <td>{{ activity.get_activity_type_display }}</td>
-                    <td>{{ activity.activity_description }}</td>
-                    <td>{{ activity.timestamp|date:"M d, Y H:i" }}</td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="5" class="text-center">No activities found matching the filters.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <div class="card activity-table">
+    <div class="card-header gradient-color">
+            <h5 class="mb-0 text-white"><i class="bi bi-journal-text"></i> Activity log</h5>
+        </div>
+        <div class="card-body p-0">
+            <table id="activityTable" class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>User</th>
+                        <th>Object</th>
+                        <th>Activity Type</th>
+                        <th>Description</th>
+                        <th>Timestamp</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for activity in activities %}
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="user-avatar">{{ activity.user.username|first|upper }}</div>
+                                {{ activity.user.username }}
+                            </div>
+                        </td>
+                        <td>{{ activity.object_name }}</td>
+                        <td>
+                            <span class="activity-badge {{ activity.activity_type|lower }}">
+                                {{ activity.get_activity_type_display }}
+                            </span>
+                        </td>
+                        <td>{{ activity.activity_description }}</td>
+                        <td>{{ activity.timestamp|date:"M d, Y H:i" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 
-
+<!-- JavaScript Enhancements -->
 <script>
     $(document).ready(function() {
+        // Initialize DataTables
         $('#activityTable').DataTable({
-            "paging": true,
-            "searching": false,  // Disable built-in search (using our filters instead)
-            "ordering": true,
-            "info": true,
-            "pageLength": 10
+            paging: true,
+            searching: false,
+            ordering: true,
+            info: true,
+            pageLength: 10,
+            language: {
+                search: '<i class="bi bi-search"></i>',
+                searchPlaceholder: 'Search activities...'
+            }
+        });
+
+        // AJAX for dynamic filters
+        $("#projectSelect").change(function () {
+            var projectId = $(this).val();
+            $("#milestoneSelect").html('<option value="">Loading...</option>');
+            $("#taskSelect").html('<option value="">All Tasks</option>');
+
+            if (projectId) {
+                $.ajax({
+                    url: "{% url 'get_milestones' %}",
+                    data: { project_id: projectId },
+                    success: function (data) {
+                        var milestoneOptions = '<option value="">All Milestones</option>';
+                        data.forEach(function (milestone) {
+                            milestoneOptions += `<option value="${milestone.id}">${milestone.name}</option>`;
+                        });
+                        $("#milestoneSelect").html(milestoneOptions);
+                    }
+                });
+            } else {
+                $("#milestoneSelect").html('<option value="">All Milestones</option>');
+            }
+        });
+
+        $("#milestoneSelect").change(function () {
+            var milestoneId = $(this).val();
+            $("#taskSelect").html('<option value="">Loading...</option>');
+
+            if (milestoneId) {
+                $.ajax({
+                    url: "{% url 'get_tasks' %}",
+                    data: { milestone_id: milestoneId },
+                    success: function (data) {
+                        var taskOptions = '<option value="">All Tasks</option>';
+                        data.forEach(function (task) {
+                            taskOptions += `<option value="${task.id}">${task.name}</option>`;
+                        });
+                        $("#taskSelect").html(taskOptions);
+                    }
+                });
+            } else {
+                $("#taskSelect").html('<option value="">All Tasks</option>');
+            }
         });
     });
 </script>
+
 {% endblock %}

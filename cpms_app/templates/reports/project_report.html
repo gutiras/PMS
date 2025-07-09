@@ -1,0 +1,55 @@
+{% extends 'home.html' %}
+{% block content %}
+<h1>Project Report</h1>
+<form method="get">
+    <select name="status">
+        <option value="">All Statuses</option>
+        <option value="pending" {% if current_status_filter == 'pending' %}selected{% endif %}>Pending</option>
+        <option value="in_progress" {% if current_status_filter == 'in_progress' %}selected{% endif %}>In Progress</option>
+        <option value="completed" {% if current_status_filter == 'completed' %}selected{% endif %}>Completed</option>
+    </select>
+    <button type="submit">Filter</button>
+</form>
+
+<div class="charts">
+    <div id="statusChart"></div>
+    <div id="progressChart"></div>
+</div>
+
+<a href="{% url 'download_excel_report' 'projects' %}" class="btn">Download Excel</a>
+
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<script>
+    // Status Distribution Pie Chart
+    const statusData = {
+        values: [
+            {% for item in status_counts %}
+                {{ item.count }}{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ],
+        labels: [
+            {% for item in status_counts %}
+                "{{ item.status }}"{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ],
+        type: 'pie'
+    };
+    Plotly.newPlot('statusChart', [statusData], {title: 'Project Status Distribution'});
+
+    // Progress Bar Chart
+    const progressData = [{
+        x: [
+            {% for project in projects %}
+                "{{ project.name }}"{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ],
+        y: [
+            {% for project in projects %}
+                {{ project.progress }}{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ],
+        type: 'bar'
+    }];
+    Plotly.newPlot('progressChart', progressData, {title: 'Project Progress'});
+</script>
+{% endblock %}

@@ -1,0 +1,79 @@
+<!-- templates/partials/task_card.html -->
+<div class="task-card card mb-3 {{ task.status }}">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+            <h5 class="card-title mb-0">{{ task.name }}</h5>
+            <div class="dropdown">
+                <button class="btn btn-link p-0" type="button" data-bs-toggle="dropdown">
+                    <i class="bi bi-three-dots-vertical"></i>
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="{% url 'task_list' task.milestone.id %}">Manage Task</a></li>
+                    <li><a class="dropdown-item" href="{% url 'manage_task_steps' task.id %}">Manage Step</a></li>
+                    
+                </ul>
+            </div>
+        </div>
+        
+        <div class="mb-2">
+            <span class="badge bg-light text-dark border">{{ task.milestone.project.name }}:{{ task.milestone.name }}</span>
+            {% if task.is_delayed %}<span class="badge bg-danger">Delayed</span>{% endif %}
+        </div>
+        
+        <div class="progress mb-3" style="height: 8px;">
+            <div class="progress-bar bg-primary" role="progressbar" 
+                 style="width: {{ task.progress }}%" 
+                 aria-valuenow="{{ task.progress }}" 
+                 aria-valuemin="0" 
+                 aria-valuemax="100">
+            </div>
+        </div>
+
+        <!-- Steps Accordion -->
+        <div class="accordion accordion-flush" id="stepsAccordion{{ task.id }}">
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button" 
+                            data-bs-toggle="collapse" 
+                            data-bs-target="#stepsCollapse{{ task.id }}">
+                        Steps ({{ task.steps.count }})
+                    </button>
+                </h2>
+                <div id="stepsCollapse{{ task.id }}" class="accordion-collapse collapse" 
+                     data-bs-parent="#stepsAccordion{{ task.id }}">
+                    <div class="accordion-body p-0">
+                        <ul class="list-group list-group-flush">
+                            {% for step in task.steps.all %}
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="bi bi-chevron-right me-2"></i>
+                                    {{ step.description }}
+                                    {% if step.issues.exists %}
+                                    <span class="badge bg-danger ms-2">{{ step.issues.count }} issues</span>
+                                    {% endif %}
+                                </div>
+                                <span class="badge bg-{% if step.status == 'completed' %}success{% elif step.status == 'in_progress' %}warning{% else %}secondary{% endif %}">
+                                    {{ step.get_status_display }}
+                                </span>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="card-footer bg-transparent d-flex justify-content-between align-items-center">
+        <small class="text-muted">
+            Due {{ task.end_date|date:"M d" }} • 
+            {{ task.remaining_days }} days left
+        </small>
+        <div class="avatar-group">
+            {% for user in task.assigned_to.all %}
+            <span class="avatar avatar-sm" title="{{ user.username }}">
+               {%if user.get_full_name %}  {{ user.get_full_name|first }} {%else%}{{  user.username|first  }}{%endif%}
+            </span>
+            {% endfor %}
+        </div>
+    </div>
+</div>

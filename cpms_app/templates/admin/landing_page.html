@@ -1,168 +1,257 @@
 {% extends 'home.html' %}
-{% block title %}Home{% endblock %}
+{% block title %}Admin Dashboard{% endblock %}
 {% block content %}
+
 <!-- Breadcrumb Navigation -->
-<div class=" bg-light ">
-    <nav aria-label="breadcrumb">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a class="text-decoration-none" href="{% url 'home' %}">Home</a></li>        
-        </ol>
-    </nav>
+<div class="bg-light ">
+      <nav aria-label="breadcrumb">
+                <ol class="breadcrumb bg-transparent p-0">
+                    <li class="breadcrumb-item"><a class="text-decoration-none" href="{% url 'home' %}">Home</a></li>
+                </ol>
+            </nav>
 </div>
-<div class="container mt-2">
-    <div class="jumbotron text-center">
-        
-        <div class="d-flex justify-content-end">
-            <a href="{% url 'user_create' %}" class="btn btn-outline-primary me-2">
-                <i class="bi bi-person-plus-fill"></i> Create User
-            </a>
-            <a href="{% url 'project_create' %}" class="btn btn-outline-primary me-2">
-                <i class="bi bi-folder-plus"></i> Create Project
-            </a>
-            <a href="{% url 'team_create' %}" class="btn btn-outline-primary">
-                <i class="bi bi-people-fill"></i> Create Team
-            </a>
-        </div>
+
+<!-- Main Content -->
+<div class="container-fluid mt-4">
+    <!-- Quick Actions -->
+    <div class="d-flex justify-content-end mb-4">
+        <a href="{% url 'user_create' %}" class="btn btn-primary me-2">
+            <i class="bi bi-person-plus-fill"></i> Create User
+        </a>
+        <a href="{% url 'project_create' %}" class="btn btn-primary me-2">
+            <i class="bi bi-folder-plus"></i> Create Project
+        </a>
+        <a href="{% url 'team_create' %}" class="btn btn-primary">
+            <i class="bi bi-people-fill"></i> Create Team
+        </a>
     </div>
 
     <!-- Summary Statistics -->
-<div class="row text-center mt-5">
-    <!-- For Admin -->
-    <!-- Projects Section -->
-    <div class="col-md-4">
-        <div class="card shadow-lg border-0 rounded-3">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h4 class="card-title text-primary">Total Projects</h4>
-                    <p class="fs-2 fw-bold">{{ total_projects }}</p>
-                </div>
-                
-                <hr>
-                <div class="d-flex justify-content-between">
-                    <span class="fw-semibold text-muted">Ongoing:</span> <span class="text-success fw-bold">{{ ongoing_projects }}</span>
-                </div>
-                <div class="d-flex justify-content-between">
-                    <span class="fw-semibold text-muted">Completed:</span> <span class="text-info fw-bold">{{ completed_projects }}</span>
-                </div>
-                <div class="d-flex justify-content-between">
-                    <span class="fw-semibold text-muted">Pending:</span> <span class="text-warning fw-bold">{{ pending_projects }}</span>
-                </div>
-
-                <div class="d-flex justify-content-begin">
-                  <a href="{% url 'project_list' %}" class="btn btn-outline-primary btn-sm mt-3   shadow-sm ">
-                    <i class="bi bi-calendar-event"></i></i> View Projects
-                </a>
-                </div>
-            </div>
-          
-        </div>
-    </div>
-
-    <!-- Teams Section -->
-    <div class="col-md-4">
-        <div class="card shadow-lg border-0 rounded-3">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h4 class="card-title text-primary">Total Teams</h4>
-                    <p class="fs-2 fw-bold">{{ total_teams }}</p> <!-- Adjust size with 'fs-4', 'fs-5', etc. -->
-                </div>
-               
-                <hr>
-                <div class="d-flex justify-content-between">
-                    <span class="fw-semibold text-muted">No Projects Assigned:</span> <span class="text-danger fw-bold">{{ teams_with_no_projects }}</span>
-                </div>
-                <div class="d-flex justify-content-between">
-                    <span class="fw-semibold text-muted">More than 2 Projects:</span> <span class="text-success fw-bold">{{ teams_with_more_than_2_projects }}</span>
-                </div>
-                <div class="d-flex justify-content-between">
-                    <span class="fw-semibold text-muted">Others:</span> <span class="text-secondary fw-bold">{{ other_teams }}</span>
-                </div>
-                <div class="d-flex justify-content-begin">
-                  <a href="{% url 'team_list' %}" class="btn btn-outline-primary btn-sm mt-3  shadow-sm">
-                    <i class="bi bi-people-fill"></i> View Teams
-                </a>
+    <div class="row g-4">
+        <!-- Projects Card -->
+        <div class="col-md-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title text-primary">Projects Overview</h5>
+                    <h2 class="display-6">{{ total_projects }}</h2>
+                    <div class="progress mb-3">
+                        <div class="progress-bar bg-success" style="width: {{ ongoing_projects_percentage }}%"></div>
+                        <div class="progress-bar bg-warning" style="width: {{ pending_projects_percentage }}%"></div>
+                        <div class="progress-bar bg-info" style="width: {{ completed_projects_percentage }}%"></div>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-success">Ongoing: {{ ongoing_projects }}</span>
+                        <span class="text-warning">Pending: {{ pending_projects }}</span>
+                        <span class="text-info">Completed: {{ completed_projects }}</span>
+                    </div>
+                    <a href="{% url 'project_list' %}" class="btn btn-outline-primary btn-sm mt-3">
+                        <i class="bi bi-calendar-event"></i> View Projects
+                    </a>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Users Section -->
+        <!-- Teams Card -->
+        <div class="col-md-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title text-primary">Teams Overview</h5>
+                    <h2 class="display-6">{{ total_teams }}</h2>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-danger">No Projects: {{ teams_with_no_projects }}</span>
+                        <span class="text-success">>2 Projects: {{ teams_with_more_than_2_projects }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-secondary">Others: {{ other_teams }}</span>
+                    </div>
+                    <a href="{% url 'team_list' %}" class="btn btn-outline-primary btn-sm mt-3">
+                        <i class="bi bi-people-fill"></i> View Teams
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Users Section -->
     <div class="col-md-4">
-        <div class="card shadow-lg border-0 rounded-3">
-            <div class="card-body">
+        <div class="card h-100 shadow-sm">
+                <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h4 class="card-title text-primary">Total Users</h4>
-                   <p class="fs-2 fw-bold">{{ total_users }}</p>
+                   <h5 class="card-title text-primary">Total users</h5>
+                    <h2 class="display-6">{{ total_users }}</h2>
                 </div>
                 
                 <hr>
-                <div class="d-flex justify-content-between">
-                    <span class="fw-semibold text-muted">Without Teams:</span> <span class="text-danger fw-bold">{{ users_without_teams }}</span>
-                </div>
-                <div class="d-flex justify-content-between">
-                    <span class="fw-semibold text-muted">Without Tasks:</span> <span class="text-warning fw-bold">{{ users_without_milestones }}</span>
-                </div>
-                <div class="d-flex justify-content-between">
-                    <span class="fw-semibold text-muted">In More than 2 Teams:</span> <span class="text-success fw-bold">{{ users_in_more_than_2_teams }}</span>
-                </div>
-                
-                <div class="d-flex justify-content-begin">
-                  <a href="{% url 'user_list' %}" class="btn btn-outline-primary btn-sm mt-3  shadow-sm">
+                <div class="d-flex justify-content-between mb-2">
+                        <span class="text-danger">No teams: {{ users_without_teams }}</span>
+                         <span class="text-danger">No tasks: {{ users_without_milestones }}</span>
+                        <span class="text-success">>2 Teams: {{ users_in_more_than_2_teams }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-secondary">Others: {{ other_teams }}</span>
+                    </div>
+                     <a href="{% url 'user_list' %}" class="btn btn-outline-primary btn-sm mt-3  shadow-sm">
                     <i class="bi bi-person-fill"></i> View Users
                 </a>
                 </div>
             </div>
         </div>
     </div>
-</div>
+     
+          <!-- Milestones Section -->
+<div class="row mt-4 g-4">
+    <!-- Ongoing Milestones Card -->
+    <div class="col-md-12">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="card-title text-primary">Active Milestones in Ongoing Projects</h5>
+                    <div class="badge bg-primary rounded-pill">
+                        {{ total_ongoing_milestones }} Active Milestones
+                    </div>
+                </div>
+                
+                <!-- Progress Chart -->
+                <div style="height: 300px;">
+                    <canvas id="ongoingMilestonesChart"></canvas>
+                </div>
 
-<div class="card mt-4">
-    <div class="card-header">
-        <h5>Recent Activities</h5>
+                
+            </div>
+        </div>
     </div>
-    <ul class="list-group list-group-flush">
-        {% for activity in recent_activities %}
-        <li class="list-group-item">
+</div>
+    <!-- Charts Section -->
+    <div class="row mt-4 g-4">
+        <!-- Projects Progress Chart -->
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title text-primary">Projects Progress</h5>
+                    <canvas id="projectsProgressChart"></canvas>
+                </div>
+            </div>
+        </div>
+       <!-- Recent Activities -->
+    <div class=" col-md-6 card ">
+        <div class="card-header ">
+            <h5 class="mb-0">Recent Activities</h5>
+        </div>
+        <ul class="list-group list-group-flush">
+            {% for activity in recent_activities %}
+            <li class="list-group-item">
+                <em>{{ activity.activity_description }}</em>
+                <span class="text-muted float-end">{{ activity.timestamp|date:"M d, Y H:i" }}</span>
+            </li>
+            {% empty %}
+            <li class="list-group-item text-center">No recent activities.</li>
+            {% endfor %}
+        </ul>
+    </div>
+    </div>    
+</div>
+
+    <!-- Custom Styles -->
+    <style>
+        .card {
+            transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        .progress-bar {
+            transition: width 0.5s ease-in-out;
+        }
+    </style>
+
+    <!-- Chart.js Script -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Projects Progress Chart
+        const projectsCtx = document.getElementById('projectsProgressChart').getContext('2d');
+        new Chart(projectsCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Ongoing', 'Pending', 'Completed'],
+                datasets: [{
+                    label: 'Projects',
+                    data: [{{ ongoing_projects }}, {{ pending_projects }}, {{ completed_projects }}],
+                    backgroundColor: [' #ffc107', ' #808080', ' #17a2b8'],
+                }]
+            },
+            options: {
+                scales: {
+                    y: { beginAtZero: true }
+                }
+            }
+        });
+
+        
+    </script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const ctx = document.getElementById('ongoingMilestonesChart').getContext('2d');
             
-            <em>{{ activity.activity_description }}</em> 
-            <span class="text-muted float-end">{{ activity.timestamp|date:"M d, Y H:i" }}</span>
-        </li>
-        {% empty %}
-        <li class="list-group-item text-center">No recent activities.</li>
-        {% endfor %}
-    </ul>
-</div>
+            const chartData = {
+                labels: [
+                    {% for project in ongoing_projectss %}  <!-- Fixed typo here -->
+                        "{{ project.name }}: {{ project.in_progress_milestone.name }}"
+                        {% if not forloop.last %},{% endif %}
+                    {% endfor %}
+                ],
+                datasets: [{
+                    label: 'Progress',
+                    data: [
+                        {% for project in ongoing_projectss %}
+                            {{ project.in_progress_milestone.progress }}
+                            {% if not forloop.last %},{% endif %}
+                        {% endfor %}
+                    ],
+                    backgroundColor: [
+                        {% for project in ongoing_projectss %}
+                            {% with milestone=project.in_progress_milestone %}
+                                {% if milestone.progress >= 75 %}
+                                    ' #ffc107',
+                                {% elif milestone.progress >= 25 %}
+                                    ' #808080',
+                                {% else %}
+                                    ' #dc3545',
+                                {% endif %}
+                            {% endwith %}
+                        {% endfor %}
+                    ],
+                    borderWidth: 0
+                }]
+            };
 
-
-<!-- Custom Styles -->
-<style>
-    .card {
-        transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
-    }
-    .card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-    }
-    .card-body {
-        padding: 2rem;
-    }
-    .card-title {
-        font-size: 1.5rem;
-        font-weight: bold;
-    }
-    .display-6 {
-        font-size: 2.5rem;
-        font-weight: bolder;
-    }
-   
-    .shadow-sm {
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-    }
-    
-</style>
-
-
-   
-
-</div>
+            new Chart(ctx, {
+                type: 'bar',
+                data: chartData,
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            max: 100,
+                            title: {
+                                display: true,
+                                text: 'Progress (%)'
+                            }
+                        },
+                        y: {
+                            ticks: {
+                                autoSkip: false,
+                                font: {
+                                    weight: 'bold'
+                                }
+                            }
+                        }
+                    },
+                    
+                }
+            });
+        });
+    </script>
 {% endblock %}
